@@ -6,9 +6,21 @@ import java.awt.event.ActionListener;
 import java.awt.geom.Rectangle2D;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.Vector;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
 import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
 
@@ -25,7 +37,7 @@ import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.JProgressBar;
 import javax.swing.SwingUtilities;
-import javax.swing.Timer;
+
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 import javafx.animation.Animation;
@@ -110,6 +122,14 @@ public class BasicOpsTest extends Application implements JMC {
 	Label tempoLabel;
 	Sequencer sequencer;
 
+	BorderPane bp;
+
+	ArrayList<Part> parts;
+
+	ArrayList<String> partNames;
+	
+	Synthesizer synth;
+
 	public static void main(String[] args) {
 		launch(args);
 	}
@@ -142,7 +162,8 @@ public class BasicOpsTest extends Application implements JMC {
 
 		// content.getChildren().add(musicContents);
 
-		rect = new Rectangle(0, 0, 2, 400);
+		rect = new Rectangle(0, 0, 1, 400);
+
 		// StackPane.setAlignment(rect, Pos.TOP_LEFT);
 		// root.getChildren().addAll(rect, glass);
 
@@ -175,83 +196,65 @@ public class BasicOpsTest extends Application implements JMC {
 		Button playButton = new Button("Play!");
 		playButton.setOnAction(e -> {
 
-			Thread thread = new Thread() {
-				public void run() {
-
-					try {
-						toto = midiex.extract(workingSongFile.toPath());
-					} catch (InterruptedException e2) {
-						// TODO Auto-generated catch block
-						e2.printStackTrace();
-					}
-					rect.setHeight(content.getHeight());
-					toto.empty();
-					toto.addPartList(midiex.getPart());
-					toto.setTempo(midiex.tempo);
-					Write.midi(toto, "Chorale.mid");
-
-					File myMidiFile = new File("Chorale.mid");
-
-					Sequence sequence = null;
-					try {
-						sequence = MidiSystem.getSequence(myMidiFile);
-					} catch (InvalidMidiDataException | IOException e1) {
-						// TODO Auto-generated catch block
-						e1.printStackTrace();
-					}
-
-					try {
-						sequencer.open();
-					} catch (MidiUnavailableException e1) {
-						// TODO Auto-generated catch block
-						e1.printStackTrace();
-					}
-					try {
-						sequencer.setSequence(sequence);
-					} catch (InvalidMidiDataException e1) {
-						// TODO Auto-generated catch block
-						e1.printStackTrace();
-					}
-
-					if (sequencer.isRunning()) {
-						sequencer.stop();
-						barTimeLine.stop();
-					} else {
-
-						sequencer.start();
-						try {
-							Thread.sleep(10);
-						} catch (InterruptedException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-						totalTime = sequencer.getMicrosecondLength();
-						timeLine();
-						barTimeLine.play();
-
-					}
-
-					sequencer.addMetaEventListener(new MetaEventListener() {
-						public void meta(MetaMessage event) {
-							if (event.getType() == 47) {
-								// Sequencer is done playing
-							}
-
-						}
-					});
-
+			if (toto == null) {
+				try {
+					toto = midiex.extract(workingSongFile.toPath());
+				} catch (InterruptedException e2) {
+					// TODO Auto-generated catch block
+					e2.printStackTrace();
 				}
 
-			};
+			}
 
-			thread.start();
+			toto.empty();
+			toto.addPartList(midiex.getPart());
+			rect.setHeight(content.getHeight());
+			toto.setTempo(midiex.tempo);
+			Write.midi(toto, "Chorale.mid");
 
+			File myMidiFile = new File("Chorale.mid");
+
+			Sequence sequence = null;
 			try {
-				thread.join();
-			} catch (InterruptedException e1) {
+				sequence = MidiSystem.getSequence(myMidiFile);
+			} catch (InvalidMidiDataException | IOException e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
 			}
+
+			try {
+				sequencer.open();
+			} catch (MidiUnavailableException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+			try {
+				sequencer.setSequence(sequence);
+			} catch (InvalidMidiDataException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+
+			if (sequencer.isRunning()) {
+				sequencer.stop();
+				barTimeLine.stop();
+			} else {
+
+				sequencer.start();
+				totalTime = sequencer.getMicrosecondLength();
+				timeLine();
+				barTimeLine.play();
+
+			}
+
+			sequencer.addMetaEventListener(new MetaEventListener() {
+				public void meta(MetaMessage event) {
+					if (event.getType() == 47) {
+						// Sequencer is done playing
+					}
+
+				}
+			});
 
 		});
 
@@ -265,15 +268,13 @@ public class BasicOpsTest extends Application implements JMC {
 			midiex.setMNB(temp);
 
 		});
-//		
-//		Button deleteButton = new Button("Delete");
-//		deleteButton.setOnAction(e -> {
-//
-//			midiex.getMNB().clear();
-//			
-//
-//		});
 
+		Button deleteButton = new Button("Delete");
+		deleteButton.setOnAction(e -> {
+
+			midiex.getMNB().clear();
+
+		});
 
 		// root.getChildren().add(scroller);
 
@@ -299,11 +300,13 @@ public class BasicOpsTest extends Application implements JMC {
 		root.getChildren().add(scrollPane);
 
 		Label test = new Label("Test");
+
 		tempoField = new TextField("128");
 		tempoLabel = new Label("Tempo:");
-		BorderPane innerBP = new BorderPane(root, null, null, null, test);
+		BorderPane innerBP = new BorderPane(root, deleteButton, null, null, null);
 
 		tempoField.textProperty().addListener(new ChangeListener<String>() {
+
 			@Override
 			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
 				if (!newValue.matches("\\d{0,3}?")) {
@@ -316,6 +319,23 @@ public class BasicOpsTest extends Application implements JMC {
 				}
 			}
 		});
+
+		FutureTask<Void> task = new FutureTask<Void>(new Callable<Void>() {
+			@Override
+			public Void call() throws Exception {
+				bp.setStyle("-fx-background-color: linear-gradient(from 25% 25% to 100% 100%, #0091FF, #661a33)");
+				return null;
+			}
+		});
+
+		Executor executor = Executors.newSingleThreadScheduledExecutor();
+		executor.execute(task);
+
+		try {
+			task.get(5, TimeUnit.SECONDS);
+		} catch (Exception ex) {
+			// Handle your exception
+		}
 
 		tempoLabel.setAlignment(Pos.CENTER);
 
@@ -339,12 +359,32 @@ public class BasicOpsTest extends Application implements JMC {
 		// content.getChildren().add(rect);
 		// root.getChildren().addAll(content);
 
+		int delay = 1000; // delay for 5 sec.
+		int interval = midiex.tempo * 10 / 4; // iterate every sec.
+		Timer timer = new Timer();
+
+		timer.scheduleAtFixedRate(new TimerTask() {
+			public void run() {
+
+				Random random = new Random();
+				int nextInt = random.nextInt(256 * 256 * 256);
+				String colorCode1 = String.format("#%06x", nextInt);
+
+				int nextInt2 = random.nextInt(256 * 256 * 256);
+				String colorCode2 = String.format("#%06x", nextInt2);
+
+				content.setStyle("-fx-background-color: linear-gradient(from 25% 25% to 100% 100%," + colorCode1 + ", "
+						+ colorCode2 + ")");
+			}
+		}, delay, interval);
+
 		Button importButton = new Button("Import");
 		importButton.setOnAction(e -> {
 
+			// bp.setStyle("-fx-background-color: #F0591E;");
 			if (toto != null) {
 				toto.clean();
-				
+
 				toto.setTempo(midiex.tempo);
 			}
 			midiex = new MIDINoteExtractor();
@@ -376,12 +416,34 @@ public class BasicOpsTest extends Application implements JMC {
 
 			tempoField.setText("" + midiex.tempo);
 			rect.setHeight(content.getHeight());
+			partNames = new ArrayList<String>();
+			for (int i = 0; i < toto.getPartArray().length; i++) {
+
+					Constants.table(synth);
+					partNames.add(Constants.midiTable.getOrDefault(toto.getPartArray()[i].getInstrument(), "Error"));
+					
+					
+					System.out.println(toto.getPartArray()[i].getInstrument() + "");
+			
+			}
+
+			Group partGroup = new Group();
+			ArrayList<Label> partLabels = new ArrayList<Label>();
+			for (int i = 0; i < toto.getPartArray().length; i++) {
+
+				partLabels.add(new Label(partNames.get(i)));
+				System.out.println(partNames.get(i));
+
+			}
+
+			partGroup.getChildren().addAll(partLabels);
+			innerBP.leftProperty().set(partGroup);
 
 		});
 
 		Label ol = new Label("Outer Layer");
 		HBox menu = new HBox(playButton, tempoLabel, tempoField);
-		BorderPane bp = new BorderPane(innerBP, menu, addButton, importButton, ol);
+		bp = new BorderPane(innerBP, menu, addButton, importButton, ol);
 
 		Scene scene = new Scene(bp, width, height);
 
@@ -542,17 +604,19 @@ public class BasicOpsTest extends Application implements JMC {
 
 	public void synth() throws Exception {
 
-		Synthesizer synth = MidiSystem.getSynthesizer();
+		 synth = MidiSystem.getSynthesizer();
 		synth.open();
 
-		// Soundbank sb = synth.getDefaultSoundbank();/*getSoundbank(new
-		// File("./soundbank-deluxe.gm"));*/
+		Soundbank sb = synth.getDefaultSoundbank();/*
+													 * getSoundbank(new // File("./soundbank-deluxe.gm"));
+													 */
 
-		// synth.loadAllInstruments(sb);
+		synth.loadAllInstruments(sb);
 
 		synth.unloadAllInstruments(synth.getDefaultSoundbank());
-		 synth.loadAllInstruments(MidiSystem.getSoundbank(new File("Donkey Kong Country 2014.sf2")));
-		//synth.loadAllInstruments(MidiSystem.getSoundbank(new File("Square.sf2")));
+		// synth.loadAllInstruments(MidiSystem.getSoundbank(new File("Donkey Kong
+		// Country 2014.sf2")));
+		// synth.loadAllInstruments(MidiSystem.getSoundbank(new File("Square.sf2")));
 
 		sequencer.getTransmitter().setReceiver(synth.getReceiver());
 

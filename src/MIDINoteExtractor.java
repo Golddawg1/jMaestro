@@ -23,7 +23,7 @@ public class MIDINoteExtractor implements JMC {
 	MouseGestures midibar = new MouseGestures();
 	ArrayList<MIDIPane> panes = new ArrayList<MIDIPane>();
 	ArrayList<Part> allParts = new ArrayList<Part>();
-	public int tempo;
+	public int tempo = 90;
 
 	public MIDINoteExtractor() {
 
@@ -36,7 +36,7 @@ public class MIDINoteExtractor implements JMC {
 		File file = new File(s.toUri());
 		if (file.isFile()) {
 			toto = Read.midiOrJmWithNoMessaging(file);
-			Read.midi(toto, file.getAbsolutePath());
+			//Read.midi(toto, file.getAbsolutePath());
 			tempo = (int) toto.getTempo();
 		}
 		ArrayList<MyThead> threads = new ArrayList<MyThead>();
@@ -66,9 +66,9 @@ public class MIDINoteExtractor implements JMC {
 	public MIDINoteBar getMNB() {
 		return currentNote;
 	}
-	
+
 	public void delete(MIDINoteBar mnb) {
-		
+
 		Note n = new Note();
 		this.currentNote.setNote(n);
 		mnb.clear();
@@ -80,12 +80,13 @@ public class MIDINoteExtractor implements JMC {
 
 	public MIDIPane extractNotes(Part s) {
 
-		Part part = new Part();;
+		Part part = new Part();
+		
 
-		// part.setChannel(s.getChannel());
-		// part.setInstrument(s.getInstrument());
-		// part.setTempo(s.getTempo());
-		// part.setRhythmValue(s.getShortestRhythmValue());
+		 part.setChannel(s.getChannel());
+		 part.setInstrument(s.getInstrument());
+		 part.setTempo(s.getTempo());
+		 part.setRhythmValue(s.getShortestRhythmValue());
 
 		Phrase[] p = s.getPhraseArray();
 		MIDIPane pane;
@@ -104,8 +105,11 @@ public class MIDINoteExtractor implements JMC {
 		for (int i = 0; i < p.length; i++) {
 
 			for (int j = 0; j < p[i].getNoteArray().length; j++) {
-				noteList.add(p[i].getNote(j));
-				timeList.add(p[i].getNoteStartTime(j));
+
+				if (p[i].getNote(j).getPitch() != REST) {
+					noteList.add(p[i].getNote(j));
+					timeList.add(p[i].getNoteStartTime(j));
+				}
 			}
 		}
 
@@ -114,6 +118,7 @@ public class MIDINoteExtractor implements JMC {
 			Note nt = noteList.get(q);
 			if (nt.getPitch() == REST) {
 
+				nt = null;
 			}
 
 			else {
@@ -138,6 +143,16 @@ public class MIDINoteExtractor implements JMC {
 
 	public Part[] getPart() {
 
+		for(int i =0; i < allParts.size(); i++) {
+			for(int j =0; j < allParts.get(i).getPhraseArray().length; j++) {
+				for(int q=0; q < allParts.get(i).getPhraseArray()[j].getNoteArray().length; q++) {
+					if(allParts.get(i).getPhrase(j).getNote(q).getPitch() == REST) {
+						
+						allParts.get(i).removePhrase(j);
+					}
+				}
+			}
+		}
 		return allParts.toArray(new Part[allParts.size()]);
 	}
 

@@ -15,7 +15,7 @@ public class MIDINoteBar extends Rectangle implements JMC {
 		startTime = time;
 		this.setX(x * 20);
 		this.setY(y * -1 + 127);
-		this.setWidth(width * 20 -.5);
+		this.setWidth(width * 20 - .5);
 		this.setHeight(3);
 		this.setArcHeight(25);
 		this.setArcWidth(25);
@@ -46,7 +46,7 @@ public class MIDINoteBar extends Rectangle implements JMC {
 	public void setMNB(MIDINoteBar newNote) {
 		this.setX(newNote.getStartTime());
 		this.setY(newNote.getNote().getPitch() * -1 + 127);
-		this.setWidth(newNote.getNote().getRhythmValue() * 20- .5);
+		this.setWidth(newNote.getNote().getRhythmValue() * 20 - .5);
 		this.startTime = newNote.getStartTime();
 		this.n = newNote.getNote();
 
@@ -57,7 +57,7 @@ public class MIDINoteBar extends Rectangle implements JMC {
 	public void setNote(Note newNote) {
 		n = newNote;
 		this.setY(newNote.getPitch() * -1 + 127);
-		this.setWidth(newNote.getRhythmValue() * 20 -.5);
+		this.setWidth(newNote.getRhythmValue() * 20 - .5);
 
 	}
 
@@ -66,15 +66,15 @@ public class MIDINoteBar extends Rectangle implements JMC {
 		this.setX(newTime * 20);
 
 	}
-	
+
 	public void clear() {
-		
-		this.setX(-900);
-		this.setY(-900);
+
+		n.setDuration(0);
+		n.setPitch(REST);
+		startTime = 0;
 		this.setWidth(0);
-		this.startTime = -3000;
-		this.n = null;
-		
+		this.setHeight(0);
+
 	}
 
 }
