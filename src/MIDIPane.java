@@ -2,8 +2,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javafx.collections.*;
+import javafx.event.EventHandler;
+import javafx.scene.Node;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Shape;
 import jm.JMC;
+import jm.music.data.Part;
 
 interface NoteChangeListener {
 	void noteChanged();
@@ -12,25 +19,25 @@ interface NoteChangeListener {
 public class MIDIPane extends Pane implements JMC {
 
 	MIDIPane instance = this;
-	
+
 	ArrayList<MIDINoteBar> notes = new ArrayList<MIDINoteBar>();
 
-	public MIDIPane() {
+	String partName = "Error";
+
+	public MIDIPane(Part s) {
 		super();
+		MouseGestures mg = new MouseGestures();
+		mg.makeClickable(this);
+		int temp = s.getChannel();
 
-		ObservableList<MIDINoteBar> alert = FXCollections.observableList(new ArrayList<MIDINoteBar>());
+		if (temp == 9) {
+			partName = "Drums";
+		}
 
-		alert.addListener(new ListChangeListener<MIDINoteBar>() {
-			@Override
-			public void onChanged(ListChangeListener.Change change) {
-				drawNotes(instance);
-			}
+		else {
+			partName = Constants.midiTable.getOrDefault(s.getInstrument(), "Error");
+		}
 
-			private void drawNotes(MIDIPane instance) {
-				
-				
-			}
-		});
 	}
 
 	public void addNotes(ArrayList<MIDINoteBar> n) {
@@ -44,10 +51,93 @@ public class MIDIPane extends Pane implements JMC {
 	public void deleteNote(MIDINoteBar n) {
 		notes.remove(n);
 	}
-	
+
 	public void editNote(MIDINoteBar n, MIDINoteBar newNote) {
 		n = newNote;
-		
+
 	}
 
+	public String getPartInstrument() {
+		return partName;
+	}
+
+	private class MouseGestures {
+
+		double orgSceneX, orgSceneY;
+		double orgTranslateX, orgTranslateY;
+
+		public void makeClickable(Node node) {
+			node.setOnMousePressed(circleOnMousePressedEventHandler);
+			node.setOnMouseDragged(circleOnMouseDraggedEventHandler);
+		}
+
+		EventHandler<MouseEvent> circleOnMousePressedEventHandler = new EventHandler<MouseEvent>() {
+
+			@Override
+			public void handle(MouseEvent t) {
+
+				if (t.getButton() == MouseButton.PRIMARY) {
+					orgSceneX = t.getSceneX();
+					orgSceneY = t.getSceneY();
+
+					if (t.getSource() instanceof MIDIPane) {
+						
+						Node p = ((Node) (t.getSource()));
+						
+						double x = p.getLayoutX();
+						double y = p.getTranslateY();
+						
+
+						System.out.println("X="+(int)(t.getX()-x) + " Y=" + (int)(t.getY()-y) + "");
+						
+						System.out.println(((MIDIPane) p).getPartInstrument());
+
+					} else {
+
+						// Node p = ((Node) (t.getSource()));
+
+						// orgTranslateX = p.getTranslateX();
+						// orgTranslateY = p.getTranslateY();
+
+					}
+				}
+
+				else if (t.getButton() == MouseButton.SECONDARY) {
+
+				}
+
+			}
+
+		};
+
+		EventHandler<MouseEvent> circleOnMouseDraggedEventHandler = new EventHandler<MouseEvent>() {
+
+			@Override
+			public void handle(MouseEvent t) {
+
+				double offsetX = t.getSceneX() - orgSceneX;
+				double offsetY = t.getSceneY() - orgSceneY;
+
+				// double newTranslateX = orgTranslateX + offsetX;
+				// double newTranslateY = orgTranslateY + offsetY;
+
+				if (t.getSource() instanceof MIDINoteBar) {
+
+					// MIDINoteBar p = ((MIDINoteBar) (t.getSource()));
+					//
+					// currentNote = p;
+					//
+					// // p.setX(newTranslateX);
+					// // p.setY(newTranslateY);
+					// System.out.println(p.noteInfo());
+
+				} else {
+
+					Node p = ((Node) (t.getSource()));
+				}
+
+			}
+		};
+
+	}
 }

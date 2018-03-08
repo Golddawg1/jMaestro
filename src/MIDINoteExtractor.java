@@ -1,10 +1,12 @@
 import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.List;
 
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
+import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Background;
 import javafx.scene.layout.BackgroundFill;
@@ -19,11 +21,12 @@ import jm.util.Read;
 
 public class MIDINoteExtractor implements JMC {
 
-	MIDINoteBar currentNote = null;
 	MouseGestures midibar = new MouseGestures();
 	ArrayList<MIDIPane> panes = new ArrayList<MIDIPane>();
 	ArrayList<Part> allParts = new ArrayList<Part>();
 	public int tempo = 90;
+
+	ArrayList<MIDINoteBar> mnbs = new ArrayList<MIDINoteBar>();
 
 	public MIDINoteExtractor() {
 
@@ -36,7 +39,7 @@ public class MIDINoteExtractor implements JMC {
 		File file = new File(s.toUri());
 		if (file.isFile()) {
 			toto = Read.midiOrJmWithNoMessaging(file);
-			//Read.midi(toto, file.getAbsolutePath());
+			// Read.midi(toto, file.getAbsolutePath());
 			tempo = (int) toto.getTempo();
 		}
 		ArrayList<MyThead> threads = new ArrayList<MyThead>();
@@ -63,37 +66,39 @@ public class MIDINoteExtractor implements JMC {
 		return panes;
 	}
 
-	public MIDINoteBar getMNB() {
-		return currentNote;
+	public ArrayList<MIDINoteBar> getMNB() {
+		return mnbs;
 	}
 
 	public void delete(MIDINoteBar mnb) {
 
-		Note n = new Note();
-		this.currentNote.setNote(n);
+		for (int i = 0; i < mnbs.size(); i++) {
+			Note n = new Note();
+			mnbs.get(i).setNote(n);
+		}
+
 		mnb.clear();
 	}
 
 	public void setMNB(MIDINoteBar mnb) {
-		this.currentNote = mnb;
+		mnbs.add(mnb);
 	}
 
 	public MIDIPane extractNotes(Part s) {
 
 		Part part = new Part();
-		
 
-		 part.setChannel(s.getChannel());
-		 part.setInstrument(s.getInstrument());
-		 part.setTempo(s.getTempo());
-		 part.setRhythmValue(s.getShortestRhythmValue());
+		part.setChannel(s.getChannel());
+		part.setInstrument(s.getInstrument());
+		part.setTempo(s.getTempo());
+		part.setRhythmValue(s.getShortestRhythmValue());
 
 		Phrase[] p = s.getPhraseArray();
 		MIDIPane pane;
 
 		// for(int i =0; i < p.getNoteArray().length; i++)
 
-		pane = new MIDIPane();
+		pane = new MIDIPane(part);
 		pane.setMaxHeight(127);
 		pane.setPrefHeight(127);
 		pane.setBackground(
@@ -127,7 +132,6 @@ public class MIDINoteExtractor implements JMC {
 				MIDINoteBar n = new MIDINoteBar(timeList.get(q), nt.getPitch(), nt.getRhythmValue(), 3, tempNote,
 						timeList.get(q));
 				midibar.makeDraggable(n);
-
 				part.addNote(n.getNote(), n.getStartTime());
 				notes.add(n);
 
@@ -143,11 +147,11 @@ public class MIDINoteExtractor implements JMC {
 
 	public Part[] getPart() {
 
-		for(int i =0; i < allParts.size(); i++) {
-			for(int j =0; j < allParts.get(i).getPhraseArray().length; j++) {
-				for(int q=0; q < allParts.get(i).getPhraseArray()[j].getNoteArray().length; q++) {
-					if(allParts.get(i).getPhrase(j).getNote(q).getPitch() == REST) {
-						
+		for (int i = 0; i < allParts.size(); i++) {
+			for (int j = 0; j < allParts.get(i).getPhraseArray().length; j++) {
+				for (int q = 0; q < allParts.get(i).getPhraseArray()[j].getNoteArray().length; q++) {
+					if (allParts.get(i).getPhrase(j).getNote(q).getPitch() == REST) {
+
 						allParts.get(i).removePhrase(j);
 					}
 				}
@@ -171,28 +175,37 @@ public class MIDINoteExtractor implements JMC {
 			@Override
 			public void handle(MouseEvent t) {
 
-				orgSceneX = t.getSceneX();
-				orgSceneY = t.getSceneY();
+				if (t.getButton() == MouseButton.PRIMARY) {
+					orgSceneX = t.getSceneX();
+					orgSceneY = t.getSceneY();
 
-				if (t.getSource() instanceof MIDINoteBar) {
+					if (t.getSource() instanceof MIDINoteBar) {
 
-					MIDINoteBar p = ((MIDINoteBar) (t.getSource()));
+						MIDINoteBar p = ((MIDINoteBar) (t.getSource()));
+						p.setFill(Color.RED);
+						mnbs.add(p);
 
-					currentNote = p;
+						System.out.println(p.noteInfo());
 
-					// p.setX(newTranslateX);
-					// p.setY(newTranslateY);
-					System.out.println(p.noteInfo());
+					} else {
 
-				} else {
+						Node p = ((Node) (t.getSource()));
 
-					Node p = ((Node) (t.getSource()));
+						// orgTranslateX = p.getTranslateX();
+						// orgTranslateY = p.getTranslateY();
 
-					// orgTranslateX = p.getTranslateX();
-					// orgTranslateY = p.getTranslateY();
+					}
+				}
+
+				else if (t.getButton() == MouseButton.SECONDARY) {
+					for (int i = 0; i < mnbs.size(); i++) {
+						mnbs.get(i).setFill(Color.BLACK);
+					}
+					mnbs.clear();
 
 				}
 			}
+
 		};
 
 		EventHandler<MouseEvent> circleOnMouseDraggedEventHandler = new EventHandler<MouseEvent>() {

@@ -13,12 +13,12 @@ public class MIDINoteBar extends Rectangle implements JMC {
 
 		n = note;
 		startTime = time;
-		this.setX(x * 20);
+		this.setX(x * 20 +.1);
 		this.setY(y * -1 + 127);
-		this.setWidth(width * 20 - .5);
-		this.setHeight(3);
-		this.setArcHeight(25);
-		this.setArcWidth(25);
+		this.setWidth(width * 20 - 1);
+		this.setHeight(2);
+//		this.setArcHeight(25);
+//		this.setArcWidth(25);
 
 		//
 		// if (n.getRhythmValue() == QN) {
