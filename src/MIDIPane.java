@@ -3,7 +3,9 @@ import java.util.List;
 
 import javafx.collections.*;
 import javafx.event.EventHandler;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.control.Label;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
@@ -23,7 +25,8 @@ public class MIDIPane extends Pane implements JMC {
 	ArrayList<MIDINoteBar> notes = new ArrayList<MIDINoteBar>();
 
 	String partName = "Error";
-
+	
+	Label e;
 	public MIDIPane(Part s) {
 		super();
 		MouseGestures mg = new MouseGestures();
@@ -37,6 +40,9 @@ public class MIDIPane extends Pane implements JMC {
 		else {
 			partName = Constants.midiTable.getOrDefault(s.getInstrument(), "Error");
 		}
+		e = new Label(partName);
+		e.setAlignment(Pos.TOP_LEFT);
+		this.getChildren().add(e);
 
 	}
 
@@ -49,7 +55,9 @@ public class MIDIPane extends Pane implements JMC {
 	}
 
 	public void deleteNote(MIDINoteBar n) {
+		n.getNote().getMyPhrase().empty();
 		notes.remove(n);
+		
 	}
 
 	public void editNote(MIDINoteBar n, MIDINoteBar newNote) {

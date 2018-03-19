@@ -69,6 +69,8 @@ public class MIDINoteBar extends Rectangle implements JMC {
 
 	public void clear() {
 
+		Phrase temp = n.getMyPhrase();
+		temp.getMyPart().removePhrase(temp);
 		n.setDuration(0);
 		n.setPitch(REST);
 		startTime = 0;

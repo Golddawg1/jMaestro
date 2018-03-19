@@ -22,7 +22,7 @@ public class ZoomableScrollPane extends ScrollPane {
         setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
        // setFitToHeight(true); //center
-       // setFitToWidth(true); //center
+        //setFitToWidth(true); //center
 
         updateScale();
     }

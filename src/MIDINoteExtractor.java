@@ -73,8 +73,9 @@ public class MIDINoteExtractor implements JMC {
 	public void delete(MIDINoteBar mnb) {
 
 		for (int i = 0; i < mnbs.size(); i++) {
-			Note n = new Note();
-			mnbs.get(i).setNote(n);
+			
+			mnbs.get(i).clear();
+			
 		}
 
 		mnb.clear();
@@ -86,12 +87,13 @@ public class MIDINoteExtractor implements JMC {
 
 	public MIDIPane extractNotes(Part s) {
 
-		Part part = new Part();
+		Part part = s;
 
-		part.setChannel(s.getChannel());
-		part.setInstrument(s.getInstrument());
-		part.setTempo(s.getTempo());
-		part.setRhythmValue(s.getShortestRhythmValue());
+//		part.setChannel(s.getChannel());
+//		part.setInstrument(s.getInstrument());
+//		part.setTempo(s.getTempo());
+//		part.setRhythmValue(s.getShortestRhythmValue());
+		
 
 		Phrase[] p = s.getPhraseArray();
 		MIDIPane pane;
@@ -141,6 +143,8 @@ public class MIDINoteExtractor implements JMC {
 		allParts.add(part);
 		pane.addNotes(notes);
 		pane.getChildren().addAll(notes);
+		
+		s = part;
 
 		return pane;
 	}

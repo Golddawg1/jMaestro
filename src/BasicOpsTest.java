@@ -53,6 +53,7 @@ import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
+import javafx.beans.value.WritableValue;
 import javafx.event.EventHandler;
 import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
@@ -125,26 +126,27 @@ public class BasicOpsTest extends Application implements JMC {
 
 	int curr_pane = 0;
 
-	GridPane content;
+	static GridPane content;
 
 	ArrayList<Pane> paneList = new ArrayList();
 
-	MIDINoteExtractor midiex;
+	static MIDINoteExtractor midiex;
 
-	Score toto;
+	static Score toto;
 
-	double totalTime;
+	static double totalTime;
 
-	Rectangle rect;
+	static Rectangle rect;
 
-	Timeline barTimeLine, scrollingTimeLine;
+	static Timeline barTimeLine;
+	static Timeline scrollingTimeLine;
 
 	File workingSongFile;
 
 	TextField tempoField;
 
 	Label tempoLabel;
-	Sequencer sequencer;
+	static Sequencer sequencer;
 
 	BorderPane bp;
 	BorderPane innerBP;
@@ -159,13 +161,21 @@ public class BasicOpsTest extends Application implements JMC {
 
 	Stage primaryStage;
 
-	ZoomableScrollPane scrollPane;
+	static ZoomableScrollPane scrollPane;
 
 	int den, num;
 
 	MeasurePane measures;
 
 	VBox HUDcontent;
+
+	static double currentTime;
+
+	static double currentRectX;
+
+	static Button playButton;
+
+	static boolean isPlaying;
 
 	public static void main(String[] args) {
 		launch(args);
@@ -205,7 +215,7 @@ public class BasicOpsTest extends Application implements JMC {
 		sequencer = MidiSystem.getSequencer();
 
 		synth();
-		Button playButton = new Button("Play!");
+		playButton = new Button("Play!");
 		playButton.setOnAction(e -> {
 
 			if (toto == null) {
@@ -219,29 +229,18 @@ public class BasicOpsTest extends Application implements JMC {
 			}
 
 			if (sequencer.isRunning()) {
-				sequencer.stop();
-				barTimeLine.stop();
-				scrollingTimeLine.stop();
+
+				isPlaying = false;
+				stopAction();
 			} else {
-				toto.empty();
-				toto.addPartList(midiex.getPart());
-				rect.setHeight(content.getHeight());
-				toto.setTempo(midiex.tempo);
-
-				synthesize();
-				sequencer.start();
-				// System.out.println("Total time is: " + totalTime);
-				timeLine();
-				scrollingBarLock();
-				barTimeLine.play();
-				scrollingTimeLine.play();
-
+				isPlaying = true;
+				startAction();
 			}
 
 			sequencer.addMetaEventListener(new MetaEventListener() {
 				public void meta(MetaMessage event) {
 					if (event.getType() == 47) {
-						// Sequencer is done playing
+						playButton.setText("Play");
 					}
 
 				}
@@ -309,7 +308,16 @@ public class BasicOpsTest extends Application implements JMC {
 
 				else {
 					tempoField.setText(newValue);
+					
 					midiex.tempo = (Integer.parseInt(newValue));
+					
+					
+					currentTime = sequencer.getMicrosecondPosition();
+					currentRectX = rect.getTranslateX();
+					setSequencer(currentRectX);
+					
+					stopAction();
+
 				}
 			}
 		});
@@ -525,15 +533,70 @@ public class BasicOpsTest extends Application implements JMC {
 		// SwingUtilities.invokeLater(r);
 	}
 
-	public void timeLine() {
-		Duration songTime = Duration.millis(totalTime / 1000);
+	private static void startAction() {
+
+		if (isPlaying) {
+			toto.empty();
+			toto.addPartList(midiex.getPart());
+			rect.setHeight(content.getHeight());
+			toto.setTempo(midiex.tempo);
+			playButton.setText("Stop");
+			synthesize();
+
+			sequencer.setMicrosecondPosition((long) currentTime);
+			sequencer.start();
+
+			// System.out.println("Total time is: " + totalTime);
+			timeLine();
+			scrollingBarLock();
+
+			barTimeLine.play();
+			scrollingTimeLine.play();
+		}
+
+	}
+
+	private static void stopAction() {
+
+		currentTime = sequencer.getMicrosecondPosition();
+		currentRectX = rect.getTranslateX();
+
+		sequencer.stop();
+		barTimeLine.stop();
+		scrollingTimeLine.stop();
+		playButton.setText("Play");
+
+	}
+
+	public static long convertToMicro(long curr) {
+
+		long ratio = (long) (curr / content.getWidth() * totalTime);
+		System.out.println(ratio / 1000000);
+		return ratio;
+	}
+
+	public static void setSequencer(double curr) {
+
+		stopAction();
+		System.out.println("The x is: " + curr);
+		rect.translateXProperty().set(curr);
+		System.out.println("The x for rect is: " + rect.getX());
+		currentRectX = curr;
+		currentTime = convertToMicro((long) curr);
+		sequencer.setMicrosecondPosition((long) currentTime);
+		System.out.println("The sequencer is at microsecond length: " + sequencer.getMicrosecondLength());
+		startAction();
+	}
+
+	public static void timeLine() {
+		Duration songTime = Duration.millis((totalTime - currentTime) / 1000);
 		barTimeLine = new Timeline(
-				new KeyFrame(Duration.seconds(0), new KeyValue(rect.translateXProperty(), content.getTranslateX()),
+				new KeyFrame(Duration.millis(0), new KeyValue(rect.translateXProperty(), currentRectX),
 						new KeyValue(rect.translateYProperty(), 0)),
 
-				new KeyFrame(Duration.millis((totalTime / 2) / 1000),
-						new KeyValue(rect.translateXProperty(), (content.getWidth() / 2) - 1),
-						new KeyValue(rect.translateYProperty(), 0)),
+				// new KeyFrame(Duration.millis((totalTime / 2) / 1000),
+				// new KeyValue(rect.translateXProperty(), (content.getWidth() / 2) - 1),
+				// new KeyValue(rect.translateYProperty(), 0)),
 
 				new KeyFrame(songTime, new KeyValue(rect.translateXProperty(), content.getWidth() - 1),
 						new KeyValue(rect.translateYProperty(), 0)));
@@ -542,11 +605,12 @@ public class BasicOpsTest extends Application implements JMC {
 
 	}
 
-	public void scrollingBarLock() {
-		Duration songTime = Duration.millis(totalTime / 1000);
+	public static void scrollingBarLock() {
+		Duration songTime = Duration.millis((totalTime - currentTime) / 1000);
 
 		scrollingTimeLine = new Timeline(
-				new KeyFrame(Duration.seconds(0), new KeyValue(scrollPane.hvalueProperty(), 0.0)),
+				new KeyFrame(Duration.millis(0),
+						new KeyValue(scrollPane.hvalueProperty(), currentRectX / content.getWidth())),
 				// new KeyFrame(Duration.millis((totalTime / 2) / 1000),
 				// new KeyValue(scroller.hvalueProperty(), (scroller.getHmax() / 2) - 1)),
 
@@ -601,33 +665,12 @@ public class BasicOpsTest extends Application implements JMC {
 
 		tempoField.setText("" + midiex.tempo);
 		rect.setHeight(content.getHeight() + 20);
-		partNames = new ArrayList<String>();
-
-		for (int i = 0; i < toto.getPartArray().length; i++) {
-
-			partNames.add(panes.get(i).getPartInstrument());
-
-			System.out.println(toto.getPartArray()[i].getInstrument() + "");
-
-		}
 
 		GridPane contentParts = new GridPane();
 		Group partGroup = new Group();
-		ArrayList<Label> partLabels = new ArrayList<Label>();
-		for (int i = 0; i < toto.getPartArray().length; i++) {
-
-			partLabels.add(new Label(partNames.get(i)));
-			System.out.println(partNames.get(i));
-
-			Label l = new Label(partNames.get(i));
-			l.setAlignment(Pos.TOP_LEFT);
-			content.add(l, 0, i);
-
-		}
 
 		contentParts.setVgap(127 * 2);
 		innerBP.setLeft(contentParts);
-		partGroup.getChildren().addAll(partLabels);
 
 		double lastBeat = toto.getEndTime();
 
@@ -640,6 +683,19 @@ public class BasicOpsTest extends Application implements JMC {
 		measures = new MeasurePane(num, den, numMeasures);
 
 		System.out.println(numMeasures + "this many measures");
+
+		Pane pane = new Pane();
+		scrollPane = new ZoomableScrollPane(pane);
+
+		HUDcontent = new VBox();
+
+		StackPane root = new StackPane();
+		root.setAlignment(Pos.TOP_LEFT);
+
+		pane.getChildren().addAll(HUDcontent, rect);
+		root.getChildren().add(scrollPane);
+
+		innerBP.setCenter(root);
 
 		measures.setMaxWidth(content.getChildren().get(0).getTranslateX());
 		HUDcontent.getChildren().clear();
@@ -668,7 +724,7 @@ public class BasicOpsTest extends Application implements JMC {
 
 	}
 
-	private void synthesize() {
+	private static void synthesize() {
 		Write.midi(toto, "Chorale.mid");
 		File myMidiFile = new File("Chorale.mid");
 		Sequence sequence = null;
