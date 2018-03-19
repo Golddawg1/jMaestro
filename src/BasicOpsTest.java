@@ -234,16 +234,29 @@ public class BasicOpsTest extends Application implements JMC {
 				stopAction();
 			} else {
 				isPlaying = true;
+				toto.empty();
+				toto.addPartList(midiex.getPart());
+				rect.setHeight(content.getHeight());
+				toto.setTempo(midiex.tempo);
 				startAction();
 			}
 
-			sequencer.addMetaEventListener(new MetaEventListener() {
-				public void meta(MetaMessage event) {
-					if (event.getType() == 47) {
-						playButton.setText("Play");
-					}
-
+			Platform.runLater(() -> {
+				if (currentTime == totalTime) {
+					playButton.setText("Play");
 				}
+			});
+
+		});
+
+		Button resetButton = new Button("Reset");
+		resetButton.setOnAction(e -> {
+
+			Platform.runLater(() -> {
+				currentRectX = 0;
+				currentTime = 0;
+				rect.translateXProperty().set(currentRectX);
+				
 			});
 
 		});
@@ -307,16 +320,20 @@ public class BasicOpsTest extends Application implements JMC {
 				}
 
 				else {
-					tempoField.setText(newValue);
-					
-					midiex.tempo = (Integer.parseInt(newValue));
-					
-					
-					currentTime = sequencer.getMicrosecondPosition();
-					currentRectX = rect.getTranslateX();
-					setSequencer(currentRectX);
-					
-					stopAction();
+
+					Platform.runLater(() -> {
+						tempoField.setText(newValue);
+
+						midiex.tempo = (Integer.parseInt(newValue));
+
+						currentTime = sequencer.getMicrosecondPosition();
+						currentRectX = rect.getTranslateX();
+						setSequencer(currentRectX);
+
+						stopAction();
+					}
+
+					);
 
 				}
 			}
@@ -366,6 +383,7 @@ public class BasicOpsTest extends Application implements JMC {
 		Timer timer = new Timer();
 
 		timer.scheduleAtFixedRate(new TimerTask() {
+
 			public void run() {
 
 				Random random = new Random();
@@ -402,7 +420,7 @@ public class BasicOpsTest extends Application implements JMC {
 		menuBar.getMenus().addAll(menuFile, menuEdit);
 		bp.setTop(menuBar);
 
-		HBox menu = new HBox(playButton, tempoLabel, tempoField);
+		HBox menu = new HBox(playButton, resetButton, tempoLabel, tempoField);
 		VBox holder = new VBox(menuBar, menu);
 		bp.setTop(holder);
 		Scene scene = new Scene(bp, width, height);
@@ -534,37 +552,38 @@ public class BasicOpsTest extends Application implements JMC {
 	}
 
 	private static void startAction() {
+		Platform.runLater(() -> {
+			if (isPlaying) {
 
-		if (isPlaying) {
-			toto.empty();
-			toto.addPartList(midiex.getPart());
-			rect.setHeight(content.getHeight());
-			toto.setTempo(midiex.tempo);
-			playButton.setText("Stop");
-			synthesize();
+				playButton.setText("Stop");
+				synthesize();
 
-			sequencer.setMicrosecondPosition((long) currentTime);
-			sequencer.start();
+				sequencer.setMicrosecondPosition((long) currentTime);
+				sequencer.start();
 
-			// System.out.println("Total time is: " + totalTime);
-			timeLine();
-			scrollingBarLock();
+				// System.out.println("Total time is: " + totalTime);
+				timeLine();
+				scrollingBarLock();
 
-			barTimeLine.play();
-			scrollingTimeLine.play();
-		}
+				barTimeLine.play();
+				scrollingTimeLine.play();
+			}
+		});
 
 	}
 
 	private static void stopAction() {
 
-		currentTime = sequencer.getMicrosecondPosition();
-		currentRectX = rect.getTranslateX();
+		Platform.runLater(() -> {
 
-		sequencer.stop();
-		barTimeLine.stop();
-		scrollingTimeLine.stop();
-		playButton.setText("Play");
+			currentTime = sequencer.getMicrosecondPosition();
+			currentRectX = rect.getTranslateX();
+
+			sequencer.stop();
+			barTimeLine.stop();
+			scrollingTimeLine.stop();
+			playButton.setText("Play");
+		});
 
 	}
 
@@ -629,77 +648,82 @@ public class BasicOpsTest extends Application implements JMC {
 	}
 
 	public void importAction() {
+		Platform.runLater(() -> {
+			currentRectX = 0;
+			currentTime = 0;
+			rect.translateXProperty().set(currentRectX);
+			// bp.setStyle("-fx-background-color: #F0591E;");
+			if (toto != null) {
+				toto.clean();
 
-		// bp.setStyle("-fx-background-color: #F0591E;");
-		if (toto != null) {
-			toto.clean();
+				toto.setTempo(midiex.tempo);
+			}
+			midiex = new MIDINoteExtractor();
+			Path s = null;
 
-			toto.setTempo(midiex.tempo);
-		}
-		midiex = new MIDINoteExtractor();
-		Path s = null;
+			FileChooser fileChooser = new FileChooser();
 
-		FileChooser fileChooser = new FileChooser();
+			FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("MIDI files (*.mid)", "*.mid");
+			fileChooser.getExtensionFilters().add(extFilter);
 
-		FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("MIDI files (*.mid)", "*.mid");
-		fileChooser.getExtensionFilters().add(extFilter);
+			File file = fileChooser.showOpenDialog(primaryStage);
+			if (file != null) {
+				s = file.toPath();
+			}
+			workingSongFile = file;
+			s = workingSongFile.toPath();
 
-		File file = fileChooser.showOpenDialog(primaryStage);
-		if (file != null) {
-			s = file.toPath();
-		}
-		workingSongFile = file;
-		s = workingSongFile.toPath();
+			try {
+				toto = midiex.extract(s);
+			} catch (InterruptedException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
 
-		try {
-			toto = midiex.extract(s);
-		} catch (InterruptedException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
+			curr_pane = 0;
+			content.getChildren().clear();
+			paneList.clear();
+			paintNotes();
 
-		curr_pane = 0;
-		content.getChildren().clear();
-		paneList.clear();
-		paintNotes();
+			tempoField.setText("" + midiex.tempo);
+			rect.setHeight(content.getHeight() + 20);
 
-		tempoField.setText("" + midiex.tempo);
-		rect.setHeight(content.getHeight() + 20);
+			GridPane contentParts = new GridPane();
+			Group partGroup = new Group();
 
-		GridPane contentParts = new GridPane();
-		Group partGroup = new Group();
+			contentParts.setVgap(127 * 2);
+			innerBP.setLeft(contentParts);
 
-		contentParts.setVgap(127 * 2);
-		innerBP.setLeft(contentParts);
+			double lastBeat = toto.getEndTime();
 
-		double lastBeat = toto.getEndTime();
+			num = toto.getNumerator();
+			den = toto.getDenominator();
+			synthesize();
 
-		num = toto.getNumerator();
-		den = toto.getDenominator();
-		synthesize();
+			System.out.println(totalTime / 1000000 + " *" + midiex.tempo + "lastBeat is " + lastBeat);
+			double numMeasures = ((totalTime / 1000000) / 60 * midiex.tempo) / num;
+			measures = new MeasurePane(num, den, numMeasures);
 
-		System.out.println(totalTime / 1000000 + " *" + midiex.tempo + "lastBeat is " + lastBeat);
-		double numMeasures = ((totalTime / 1000000) / 60 * midiex.tempo) / num;
-		measures = new MeasurePane(num, den, numMeasures);
+			System.out.println(numMeasures + "this many measures");
 
-		System.out.println(numMeasures + "this many measures");
+			Pane pane = new Pane();
+			scrollPane = new ZoomableScrollPane(pane);
 
-		Pane pane = new Pane();
-		scrollPane = new ZoomableScrollPane(pane);
+			HUDcontent = new VBox();
 
-		HUDcontent = new VBox();
+			StackPane root = new StackPane();
+			root.setAlignment(Pos.TOP_LEFT);
 
-		StackPane root = new StackPane();
-		root.setAlignment(Pos.TOP_LEFT);
+			pane.getChildren().addAll(HUDcontent, rect);
+			root.getChildren().add(scrollPane);
 
-		pane.getChildren().addAll(HUDcontent, rect);
-		root.getChildren().add(scrollPane);
+			innerBP.setCenter(root);
 
-		innerBP.setCenter(root);
+			measures.setMaxWidth(content.getChildren().get(0).getTranslateX());
+			HUDcontent.getChildren().clear();
+			HUDcontent.getChildren().addAll(measures, content);
+		});
 
-		measures.setMaxWidth(content.getChildren().get(0).getTranslateX());
-		HUDcontent.getChildren().clear();
-		HUDcontent.getChildren().addAll(measures, content);
 	}
 
 	public void synth() throws Exception {
