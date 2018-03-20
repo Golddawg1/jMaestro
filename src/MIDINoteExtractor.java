@@ -32,6 +32,10 @@ public class MIDINoteExtractor implements JMC {
 
 	}
 
+	/*
+	 * Take in a score and run extract notes for every part and then return the
+	 * score
+	 */
 	public Score extract(Path s) throws InterruptedException {
 
 		allParts.clear();
@@ -73,9 +77,9 @@ public class MIDINoteExtractor implements JMC {
 	public void delete(MIDINoteBar mnb) {
 
 		for (int i = 0; i < mnbs.size(); i++) {
-			
+
 			mnbs.get(i).clear();
-			
+
 		}
 
 		mnb.clear();
@@ -85,15 +89,18 @@ public class MIDINoteExtractor implements JMC {
 		mnbs.add(mnb);
 	}
 
+	/*
+	 * This makes a MIDINoteBar for every note in every phrase in part s. Each note
+	 * is made into it's own phrase that carries its own start time
+	 */
 	public MIDIPane extractNotes(Part s) {
 
 		Part part = s;
 
-//		part.setChannel(s.getChannel());
-//		part.setInstrument(s.getInstrument());
-//		part.setTempo(s.getTempo());
-//		part.setRhythmValue(s.getShortestRhythmValue());
-		
+		// part.setChannel(s.getChannel());
+		// part.setInstrument(s.getInstrument());
+		// part.setTempo(s.getTempo());
+		// part.setRhythmValue(s.getShortestRhythmValue());
 
 		Phrase[] p = s.getPhraseArray();
 		MIDIPane pane;
@@ -134,6 +141,7 @@ public class MIDINoteExtractor implements JMC {
 				MIDINoteBar n = new MIDINoteBar(timeList.get(q), nt.getPitch(), nt.getRhythmValue(), 3, tempNote,
 						timeList.get(q));
 				midibar.makeDraggable(n);
+				n.setPane(pane);
 				part.addNote(n.getNote(), n.getStartTime());
 				notes.add(n);
 
@@ -143,7 +151,7 @@ public class MIDINoteExtractor implements JMC {
 		allParts.add(part);
 		pane.addNotes(notes);
 		pane.getChildren().addAll(notes);
-		
+
 		s = part;
 
 		return pane;
@@ -220,18 +228,28 @@ public class MIDINoteExtractor implements JMC {
 				double offsetX = t.getSceneX() - orgSceneX;
 				double offsetY = t.getSceneY() - orgSceneY;
 
-				// double newTranslateX = orgTranslateX + offsetX;
-				// double newTranslateY = orgTranslateY + offsetY;
+				double newTranslateX = orgTranslateX + offsetX;
+				double newTranslateY = orgTranslateY + offsetY;
 
 				if (t.getSource() instanceof MIDINoteBar) {
 
-					// MIDINoteBar p = ((MIDINoteBar) (t.getSource()));
-					//
-					// currentNote = p;
-					//
-					// // p.setX(newTranslateX);
-					// // p.setY(newTranslateY);
-					// System.out.println(p.noteInfo());
+					MIDINoteBar p = mnbs.get(0);
+
+					double x = p.getPane().getTranslateX();
+					double y = p.getPane().getTranslateY();
+
+					double newX = (int) (t.getX() - x);
+					int newY = (int) (t.getY() - y);
+
+					if (newY >= 0 && newY < 127 && newX >= 0 && newX < p.getPane().getWidth()) {
+						p.setX(newX);
+						p.setY(newY);
+
+						p.setPitch(newY);
+
+						p.setStartfromX(newX);
+					}
+					System.out.println(p.noteInfo());
 
 				} else {
 
@@ -242,7 +260,9 @@ public class MIDINoteExtractor implements JMC {
 		};
 
 	}
-
+/*
+ * Handles the the thread for extract notes
+ */
 	private class MyThead extends Thread {
 		int k;
 		Part[] p;

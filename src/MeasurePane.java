@@ -54,13 +54,16 @@ public class MeasurePane extends Pane implements JMC {
 		this.den = den;
 		measures = numMeasures;
 		mg = new MouseGestures();
-		
+
 		mg.makeClickable(this);
 		populate();
 
 		System.out.println(num + "/" + den);
 	}
 
+	/*
+	 * This populates the measures with numbers and the lines which are actually rectangles of width 2
+	 */
 	public void populate() {
 		double currentX = 0;
 		for (int i = 1; i <= measures + 1; i++) {
@@ -70,7 +73,7 @@ public class MeasurePane extends Pane implements JMC {
 			t.setText(i + "");
 			t.setY(10);
 			t.setX(currentX + 3);
-			currentX += 80/this.den;
+			currentX += 80 / this.den;
 			this.getChildren().addAll(l, t);
 			for (int j = 1; j < num; j++) {
 				Rectangle g = new Rectangle(currentX, 0, 2, 5);
@@ -111,11 +114,10 @@ public class MeasurePane extends Pane implements JMC {
 						double x = p.getLayoutX();
 						double y = p.getTranslateY();
 
-						System.out.println(((MeasurePane) p).getLayoutX() + "this is your spot in the music at location " + t.getX());
-						
+						System.out.println(((MeasurePane) p).getLayoutX()
+								+ "this is your spot in the music at location " + t.getX());
+
 						BasicOpsTest.setSequencer((long) t.getX());
-						
-					
 
 					} else {
 

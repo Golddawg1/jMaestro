@@ -1,6 +1,7 @@
 import java.util.ArrayList;
 import java.util.List;
 
+import javafx.application.Platform;
 import javafx.collections.*;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
@@ -26,9 +27,14 @@ public class MIDIPane extends Pane implements JMC {
 
 	String partName = "Error";
 	
+	int instrument = 0;
+	
+	Part myPart;
+	
 	Label e;
 	public MIDIPane(Part s) {
 		super();
+		myPart = s;
 		MouseGestures mg = new MouseGestures();
 		mg.makeClickable(this);
 		int temp = s.getChannel();
@@ -38,6 +44,7 @@ public class MIDIPane extends Pane implements JMC {
 		}
 
 		else {
+			instrument = s.getInstrument();
 			partName = Constants.midiTable.getOrDefault(s.getInstrument(), "Error");
 		}
 		e = new Label(partName);
@@ -68,6 +75,20 @@ public class MIDIPane extends Pane implements JMC {
 	public String getPartInstrument() {
 		return partName;
 	}
+	
+	public void setInstrument(int i) {
+		
+		Platform.runLater(
+				  () -> {
+						instrument = i;
+						myPart.setInstrument(instrument);
+						partName = Constants.midiTable.getOrDefault(i, "Error");
+						e.setText(partName);
+				  }
+				);
+	
+	}
+	
 
 	private class MouseGestures {
 

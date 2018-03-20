@@ -18,7 +18,7 @@ public class ZoomableScrollPane extends ScrollPane {
         this.zoomNode = new Group(target);
         setContent(outerNode(zoomNode));
 
-        setPannable(true);
+        //setPannable(true);
         setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
        // setFitToHeight(true); //center

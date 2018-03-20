@@ -238,6 +238,10 @@ public class BasicOpsTest extends Application implements JMC {
 				toto.addPartList(midiex.getPart());
 				rect.setHeight(content.getHeight());
 				toto.setTempo(midiex.tempo);
+
+				playButton.setText("Stop");
+				synthesize();
+
 				startAction();
 			}
 
@@ -249,14 +253,16 @@ public class BasicOpsTest extends Application implements JMC {
 
 		});
 
-		Button resetButton = new Button("Reset");
+		Button resetButton = new Button("←|");
 		resetButton.setOnAction(e -> {
 
 			Platform.runLater(() -> {
 				currentRectX = 0;
 				currentTime = 0;
 				rect.translateXProperty().set(currentRectX);
-				
+				panes.get(0).setInstrument(84);
+				panes.get(1).setInstrument(84);
+
 			});
 
 		});
@@ -286,16 +292,6 @@ public class BasicOpsTest extends Application implements JMC {
 
 		});
 
-		// root.getChildren().add(scroller);
-
-		// Pane sp = new Pane();
-		// StackPane scroll = new StackPane(sp);
-		// sp.getChildren().addAll(content, rect);
-		// scroller.setContent(sp);
-		// scroll.getChildren().add(scroller);
-		//
-		// rect.toFront();
-
 		StackPane root = new StackPane();
 		root.setAlignment(Pos.TOP_LEFT);
 
@@ -321,7 +317,7 @@ public class BasicOpsTest extends Application implements JMC {
 
 				else {
 
-					Platform.runLater(() -> {
+					
 						tempoField.setText(newValue);
 
 						midiex.tempo = (Integer.parseInt(newValue));
@@ -330,13 +326,13 @@ public class BasicOpsTest extends Application implements JMC {
 						currentRectX = rect.getTranslateX();
 						setSequencer(currentRectX);
 
-						stopAction();
+					
 					}
 
-					);
+					
 
 				}
-			}
+			
 		});
 
 		FutureTask<Void> task = new FutureTask<Void>(new Callable<Void>() {
@@ -357,26 +353,6 @@ public class BasicOpsTest extends Application implements JMC {
 		}
 
 		tempoLabel.setAlignment(Pos.CENTER);
-
-		// scrollPane.hvalueProperty().addListener((observable, oldValue, newValue) -> {
-		// double xTranslate = newValue.doubleValue()
-		// * (scrollPane.getViewportBounds().getHeight() - content.getHeight());
-		// content.translateXProperty().setValue(-xTranslate);
-		// });
-		// // Allow horizontal scrolling of fixed element:
-		// scrollPane.vvalueProperty().addListener((observable, oldValue, newValue) -> {
-		// double yTranslate = newValue.doubleValue()
-		// * (scrollPane.getViewportBounds().getHeight() - content.getHeight());
-		// content.translateYProperty().setValue(-yTranslate);
-		// });
-
-		// GridPane.setHgrow(content, Priority.ALWAYS);
-		// GridPane.setVgrow(content, Priority.ALWAYS);
-
-		// scroller.minWidthProperty().bind(content.minWidthProperty());
-
-		// content.getChildren().add(rect);
-		// root.getChildren().addAll(content);
 
 		int delay = 1000; // delay for 5 sec.
 		int interval = midiex.tempo * 10 / 4; // iterate every sec.
@@ -425,138 +401,18 @@ public class BasicOpsTest extends Application implements JMC {
 		bp.setTop(holder);
 		Scene scene = new Scene(bp, width, height);
 
-		// Scene scene = new Scene(new BorderPane(layout, playButton, null, null, null),
-		// width, height);
-
-		// Stage stage = new Stage();
-
 		primaryStage.setScene(scene);
 		primaryStage.show();
-
-		// rect.layoutYProperty().bind(
-		// // to vertical scroll shift (which ranges from 0 to 1)
-		// scroller.vvalueProperty()
-		// // multiplied by (scrollableAreaHeight - visibleViewportHeight)
-		// .multiply(
-		// content.heightProperty()
-		// .subtract(
-		// new ScrollPaneViewPortWidthBinding(scroller))));
 
 		content.setStyle("-fx-background-color: linear-gradient(from 25% 25% to 100% 100%, #dc143c, #661a33)");
 		bp.setStyle("-fx-background-color: linear-gradient(from 25% 25% to 100% 100%, #0091FF, #661a33)");
 
-		// MouseGestures mg = new MouseGestures();
-		// mg.makeDraggable(rect);
-		// add some borders to visualise the element' locations
 
-		// this is where the transparency is achieved:
-		// the three layers must be made transparent
-		// (i) make the VBox transparent (the 4th parameter is the alpha)
-		// p.setStyle("-fx-background-color: rgba(0, 0, 0, 0);");
-		// (ii) set the scene fill to transparent
-
-		// (iii) set the stage background to transparent
-
-		// root.getChildren().add(canvas);
-		// root.getChildren().add(ticker);
-		// primaryStage.setScene(new Scene(root));
-		// primaryStage.show();
-
-		// int[] pitchSop = { C3, G4, E4, D4, G4, A4, C4, D4, E4, D4, F4, E4, A4, G4, E4
-		// };
-		// double[] rhythmSop = { C, C, DC, Q, C, C, C, C, C, C, C, C, M, C, Q };
-		// Part soprano = new Part();
-		// // create the jMusic phrase objects
-		// Phrase soprano = new Phrase();
-		//
-		// // add the notes to each phrase
-		// soprano.addNoteList(pitchSop, rhythmSop);
-		//
-		// // create jMusic parts
-		//
-		// Part s = new Part("Tuba", TROMBONE, 1);
-		//
-		// // add the phrases to the parts
-		// s.addPhrase(soprano);
-		//
-		// // create a score
-		// score = new Score("Chorale");
-		//
-		// // add the parts to the score
-		// score.addPart(s);
-		//
-		// // display the result for the world to see
-		// // save score as a MIDI file
-		// Write.midi(score, "Chorale.mid");
-		// Play.midi(score);
-
-		// content.getChildren().add(rect);
-
-		// gc = canvas.getGraphicsContext2D();
-		// gc.setFill(Color.CORNSILK);
-		// gc.fillRect(canvas.getLayoutX(), canvas.getLayoutY(), canvas.getWidth(),
-		// canvas.getHeight());
-		// canvas.setOpacity(1);
-
-		//
-		// AnimationTimer timer = new AnimationTimer() {
-		// @Override
-		// public void handle(long now) {
-		// gc = canvas.getGraphicsContext2D();
-		// gc.setFill(Color.CORNSILK);
-		// gc.fillRect(0, 0, 300, 300);
-		// paintNotes(pitchSop, rhythmSop);
-		//
-		// }
-		// };
-
-		// sequencer.start();
-		// // timer.start();
-		// timeline.play();
-		//
-		// sequencer.addMetaEventListener(new MetaEventListener() {
-		// public void meta(MetaMessage event) {
-		// if (event.getType() == 47) {
-		// sequencer.stop();
-		// // timer.stop();
-		//
-		// }
-		// }
-		// });
-
-		// ScrollPane sp = new ScrollPane();
-		//
-		// root.getChildren().add(canvas);
-		// root.getChildren().add(rect);
-		// primaryStage.setScene(new Scene(root));
-		// primaryStage.show();
-
-		// Runnable r = new Runnable() {
-		// public void run() {
-		//
-		// ActionListener updateListener = new ActionListener() {
-		// public void actionPerformed(ActionEvent e) {
-		//
-		// Line x = new Line(xpos, 0, xpos, 300);
-		//
-		// }
-		// };
-		// Timer timer = new Timer(40, updateListener);
-		// sequencer.start();
-		// timer.start();
-		// sequencer.close();
-		// timer.stop();
-		// }
-		// };
-		// SwingUtilities.invokeLater(r);
 	}
-
+//Starts the sequencer at the current time, remakes the timelines for the rectangle and scrolling pane
 	private static void startAction() {
 		Platform.runLater(() -> {
 			if (isPlaying) {
-
-				playButton.setText("Stop");
-				synthesize();
 
 				sequencer.setMicrosecondPosition((long) currentTime);
 				sequencer.start();
@@ -571,7 +427,7 @@ public class BasicOpsTest extends Application implements JMC {
 		});
 
 	}
-
+//Stops the playing if music and timelines, sets the current x and current time to be where song was stopped
 	private static void stopAction() {
 
 		Platform.runLater(() -> {
@@ -586,14 +442,14 @@ public class BasicOpsTest extends Application implements JMC {
 		});
 
 	}
-
+//Converts an x value to a microsecond value in order to use with the sequencer
 	public static long convertToMicro(long curr) {
 
 		long ratio = (long) (curr / content.getWidth() * totalTime);
 		System.out.println(ratio / 1000000);
 		return ratio;
 	}
-
+//Does all the things to make the sequencer start at a certain location
 	public static void setSequencer(double curr) {
 
 		stopAction();
@@ -606,7 +462,7 @@ public class BasicOpsTest extends Application implements JMC {
 		System.out.println("The sequencer is at microsecond length: " + sequencer.getMicrosecondLength());
 		startAction();
 	}
-
+//the timeline for the rect
 	public static void timeLine() {
 		Duration songTime = Duration.millis((totalTime - currentTime) / 1000);
 		barTimeLine = new Timeline(
@@ -617,13 +473,13 @@ public class BasicOpsTest extends Application implements JMC {
 				// new KeyValue(rect.translateXProperty(), (content.getWidth() / 2) - 1),
 				// new KeyValue(rect.translateYProperty(), 0)),
 
-				new KeyFrame(songTime, new KeyValue(rect.translateXProperty(), content.getWidth() - 1),
+				new KeyFrame(songTime, new KeyValue(rect.translateXProperty(), content.getWidth()-1.5),
 						new KeyValue(rect.translateYProperty(), 0)));
 
 		System.out.println(totalTime / 1000);
 
 	}
-
+//the timeline to force scrolling
 	public static void scrollingBarLock() {
 		Duration songTime = Duration.millis((totalTime - currentTime) / 1000);
 
@@ -636,7 +492,7 @@ public class BasicOpsTest extends Application implements JMC {
 				new KeyFrame(songTime, new KeyValue(scrollPane.hvalueProperty(), 1.0)));
 
 	}
-
+//Initially creates the notes
 	private void paintNotes() {
 		panes = midiex.getPaneList();
 
@@ -646,7 +502,7 @@ public class BasicOpsTest extends Application implements JMC {
 
 		}
 	}
-
+//This handles everything to import a song
 	public void importAction() {
 		Platform.runLater(() -> {
 			currentRectX = 0;
