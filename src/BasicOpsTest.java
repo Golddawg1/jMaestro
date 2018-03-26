@@ -54,7 +54,12 @@ import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.beans.value.WritableValue;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
+import javafx.concurrent.Task;
 import javafx.event.EventHandler;
+import javafx.fxml.FXMLLoader;
 import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -78,6 +83,7 @@ import javafx.scene.shape.Line;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
+import javafx.stage.Modality;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
@@ -108,6 +114,7 @@ import javafx.scene.image.WritableImage;
 import javafx.scene.layout.VBox;
 
 import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
 import javafx.scene.text.TextAlignment;
 
 public class BasicOpsTest extends Application implements JMC {
@@ -177,6 +184,8 @@ public class BasicOpsTest extends Application implements JMC {
 
 	static boolean isPlaying;
 
+	static MIDIPane myCurrentMidiPane;
+
 	public static void main(String[] args) {
 		launch(args);
 	}
@@ -245,25 +254,18 @@ public class BasicOpsTest extends Application implements JMC {
 				startAction();
 			}
 
-			Platform.runLater(() -> {
-				if (currentTime == totalTime) {
-					playButton.setText("Play");
-				}
-			});
+			if (currentTime == totalTime) {
+				playButton.setText("Play");
+			}
 
 		});
 
 		Button resetButton = new Button("←|");
 		resetButton.setOnAction(e -> {
 
-			Platform.runLater(() -> {
-				currentRectX = 0;
-				currentTime = 0;
-				rect.translateXProperty().set(currentRectX);
-				panes.get(0).setInstrument(84);
-				panes.get(1).setInstrument(84);
-
-			});
+			currentRectX = 0;
+			currentTime = 0;
+			rect.translateXProperty().set(currentRectX);
 
 		});
 
@@ -317,22 +319,18 @@ public class BasicOpsTest extends Application implements JMC {
 
 				else {
 
-					
-						tempoField.setText(newValue);
+					tempoField.setText(newValue);
 
-						midiex.tempo = (Integer.parseInt(newValue));
+					midiex.tempo = (Integer.parseInt(newValue));
 
-						currentTime = sequencer.getMicrosecondPosition();
-						currentRectX = rect.getTranslateX();
-						setSequencer(currentRectX);
-
-					
-					}
-
-					
+					currentTime = sequencer.getMicrosecondPosition();
+					currentRectX = rect.getTranslateX();
+					setSequencer(currentRectX);
 
 				}
-			
+
+			}
+
 		});
 
 		FutureTask<Void> task = new FutureTask<Void>(new Callable<Void>() {
@@ -381,6 +379,7 @@ public class BasicOpsTest extends Application implements JMC {
 
 		// --- Menu File
 		Menu menuFile = new Menu("File");
+
 		MenuItem importFile = new MenuItem("Import");
 		importFile.setOnAction(new EventHandler<ActionEvent>() {
 			public void handle(ActionEvent t) {
@@ -392,6 +391,92 @@ public class BasicOpsTest extends Application implements JMC {
 
 		// --- Menu Edit
 		Menu menuEdit = new Menu("Edit");
+
+		MenuItem edit = new MenuItem("Edit");
+		edit.setOnAction(new EventHandler<ActionEvent>() {
+			public void handle(ActionEvent t) {
+				editAction();
+			}
+
+			@SuppressWarnings("unchecked")
+			private void editAction() {
+
+				Task task = new Task<Void>() {
+					@Override
+					public Void call() {
+
+						Platform.runLater(new Runnable() {
+							@Override
+							public void run() {
+
+								Stage dialog = new Stage();
+								dialog.initModality(Modality.APPLICATION_MODAL);
+								dialog.initOwner(primaryStage);
+								// VBox dialogVbox = new VBox(20);
+								//
+								HBox listViewPanel = new HBox();
+								listViewPanel.setSpacing(10);
+
+								// the text to be displayed when clicking on a new item in the list.
+
+								final Text label = new Text("Nothing Selected.");
+								if (myCurrentMidiPane != null) {
+									label.setText(myCurrentMidiPane.getPartInstrument());
+								} else {
+									label.setText("Nothing Selected");
+								}
+								label.setFont(Font.font(null, FontWeight.BOLD, 16));
+
+								FilteredList<String> filteredData = new FilteredList<>(Constants.observableList,
+										s -> true);
+
+								TextField filterInput = new TextField();
+								filterInput.textProperty().addListener(obs -> {
+									String filter = filterInput.getText();
+									if (filter == null || filter.length() == 0) {
+										filteredData.setPredicate(s -> true);
+									} else {
+										filteredData.setPredicate(s -> s.contains(filter.toUpperCase()));
+									}
+
+									Constants.mListView.setItems(filteredData);
+								});
+
+								// create a list of items.
+
+								Constants.mListView.getSelectionModel().selectedItemProperty()
+										.addListener(new ChangeListener<String>() {
+
+											public void changed(ObservableValue<? extends String> observable,
+													String oldValue, String newValue) {
+												// change the label text value to the newly selected
+												// item.
+												label.setText(newValue);
+												if (myCurrentMidiPane != null)
+													myCurrentMidiPane
+															.setInstrument((int) Constants.getKeyFromValue(newValue));
+											}
+										});
+								Group instedit = new Group();
+								listViewPanel.getChildren().addAll(Constants.mListView, label, filterInput);
+								instedit.getChildren().addAll(listViewPanel);
+
+								Scene dialogScene = new Scene(instedit, 400, 400);
+								dialog.setScene(dialogScene);
+								dialog.show();
+							}
+						});
+
+						return null;
+					}
+				};
+
+				new Thread(task).start();
+
+			}
+		});
+
+		menuEdit.getItems().addAll(edit);
 
 		menuBar.getMenus().addAll(menuFile, menuEdit);
 		bp.setTop(menuBar);
@@ -407,62 +492,111 @@ public class BasicOpsTest extends Application implements JMC {
 		content.setStyle("-fx-background-color: linear-gradient(from 25% 25% to 100% 100%, #dc143c, #661a33)");
 		bp.setStyle("-fx-background-color: linear-gradient(from 25% 25% to 100% 100%, #0091FF, #661a33)");
 
-
 	}
-//Starts the sequencer at the current time, remakes the timelines for the rectangle and scrolling pane
+
+	// Starts the sequencer at the current time, remakes the timelines for the
+	// rectangle and scrolling pane
 	private static void startAction() {
-		Platform.runLater(() -> {
-			if (isPlaying) {
 
-				sequencer.setMicrosecondPosition((long) currentTime);
-				sequencer.start();
+		Task task = new Task<Void>() {
+			@Override
+			public Void call() {
 
-				// System.out.println("Total time is: " + totalTime);
-				timeLine();
-				scrollingBarLock();
+				Platform.runLater(new Runnable() {
+					@Override
+					public void run() {
+						if (isPlaying) {
 
-				barTimeLine.play();
-				scrollingTimeLine.play();
+							sequencer.setMicrosecondPosition((long) currentTime);
+							sequencer.start();
+
+							// System.out.println("Total time is: " + totalTime);
+							timeLine();
+							scrollingBarLock();
+
+							barTimeLine.play();
+							scrollingTimeLine.play();
+						}
+					}
+				});
+
+				return null;
 			}
-		});
+		};
+
+		new Thread(task).start();
 
 	}
-//Stops the playing if music and timelines, sets the current x and current time to be where song was stopped
+
+	// Stops the playing if music and timelines, sets the current x and current time
+	// to be where song was stopped
 	private static void stopAction() {
 
-		Platform.runLater(() -> {
+		Task task = new Task<Void>() {
+			@Override
+			public Void call() {
+				Platform.runLater(new Runnable() {
+					@Override
+					public void run() {
+						currentTime = sequencer.getMicrosecondPosition();
+						currentRectX = rect.getTranslateX();
 
-			currentTime = sequencer.getMicrosecondPosition();
-			currentRectX = rect.getTranslateX();
+						sequencer.stop();
+						barTimeLine.stop();
+						scrollingTimeLine.stop();
+						playButton.setText("Play");
 
-			sequencer.stop();
-			barTimeLine.stop();
-			scrollingTimeLine.stop();
-			playButton.setText("Play");
-		});
+					}
+				});
+
+				return null;
+			}
+		};
+
+		new Thread(task).start();
 
 	}
-//Converts an x value to a microsecond value in order to use with the sequencer
+
+	// Converts an x value to a microsecond value in order to use with the sequencer
 	public static long convertToMicro(long curr) {
 
 		long ratio = (long) (curr / content.getWidth() * totalTime);
 		System.out.println(ratio / 1000000);
 		return ratio;
 	}
-//Does all the things to make the sequencer start at a certain location
+
+	// Does all the things to make the sequencer start at a certain location
 	public static void setSequencer(double curr) {
 
-		stopAction();
-		System.out.println("The x is: " + curr);
-		rect.translateXProperty().set(curr);
-		System.out.println("The x for rect is: " + rect.getX());
-		currentRectX = curr;
-		currentTime = convertToMicro((long) curr);
-		sequencer.setMicrosecondPosition((long) currentTime);
-		System.out.println("The sequencer is at microsecond length: " + sequencer.getMicrosecondLength());
-		startAction();
+		Task task = new Task<Void>() {
+			@Override
+			public Void call() {
+				Platform.runLater(new Runnable() {
+					@Override
+					public void run() {
+					
+						stopAction();
+						System.out.println("The x is: " + curr);
+						rect.translateXProperty().set(curr);
+						System.out.println("The x for rect is: " + rect.getX());
+						currentRectX = curr;
+						currentTime = convertToMicro((long) curr);
+						sequencer.setMicrosecondPosition((long) currentTime);
+						System.out.println("The sequencer is at microsecond length: " + sequencer.getMicrosecondLength());
+						startAction();
+
+					}
+				});
+
+				return null;
+			}
+		};
+
+		new Thread(task).start();
+		
 	}
-//the timeline for the rect
+
+	// the timeline for the rect
 	public static void timeLine() {
 		Duration songTime = Duration.millis((totalTime - currentTime) / 1000);
 		barTimeLine = new Timeline(
@@ -473,13 +607,14 @@ public class BasicOpsTest extends Application implements JMC {
 				// new KeyValue(rect.translateXProperty(), (content.getWidth() / 2) - 1),
 				// new KeyValue(rect.translateYProperty(), 0)),
 
-				new KeyFrame(songTime, new KeyValue(rect.translateXProperty(), content.getWidth()-1.5),
+				new KeyFrame(songTime, new KeyValue(rect.translateXProperty(), content.getWidth()),
 						new KeyValue(rect.translateYProperty(), 0)));
 
 		System.out.println(totalTime / 1000);
 
 	}
-//the timeline to force scrolling
+
+	// the timeline to force scrolling
 	public static void scrollingBarLock() {
 		Duration songTime = Duration.millis((totalTime - currentTime) / 1000);
 
@@ -492,7 +627,8 @@ public class BasicOpsTest extends Application implements JMC {
 				new KeyFrame(songTime, new KeyValue(scrollPane.hvalueProperty(), 1.0)));
 
 	}
-//Initially creates the notes
+
+	// Initially creates the notes
 	private void paintNotes() {
 		panes = midiex.getPaneList();
 
@@ -502,83 +638,83 @@ public class BasicOpsTest extends Application implements JMC {
 
 		}
 	}
-//This handles everything to import a song
+
+	// This handles everything to import a song
 	public void importAction() {
-		Platform.runLater(() -> {
-			currentRectX = 0;
-			currentTime = 0;
-			rect.translateXProperty().set(currentRectX);
-			// bp.setStyle("-fx-background-color: #F0591E;");
-			if (toto != null) {
-				toto.clean();
 
-				toto.setTempo(midiex.tempo);
-			}
-			midiex = new MIDINoteExtractor();
-			Path s = null;
+		currentRectX = 0;
+		currentTime = 0;
+		rect.translateXProperty().set(currentRectX);
+		// bp.setStyle("-fx-background-color: #F0591E;");
+		if (toto != null) {
+			toto.clean();
 
-			FileChooser fileChooser = new FileChooser();
+			toto.setTempo(midiex.tempo);
+		}
+		midiex = new MIDINoteExtractor();
+		Path s = null;
 
-			FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("MIDI files (*.mid)", "*.mid");
-			fileChooser.getExtensionFilters().add(extFilter);
+		FileChooser fileChooser = new FileChooser();
 
-			File file = fileChooser.showOpenDialog(primaryStage);
-			if (file != null) {
-				s = file.toPath();
-			}
-			workingSongFile = file;
-			s = workingSongFile.toPath();
+		FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("MIDI files (*.mid)", "*.mid");
+		fileChooser.getExtensionFilters().add(extFilter);
 
-			try {
-				toto = midiex.extract(s);
-			} catch (InterruptedException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
+		File file = fileChooser.showOpenDialog(primaryStage);
+		if (file != null) {
+			s = file.toPath();
+		}
+		workingSongFile = file;
+		s = workingSongFile.toPath();
 
-			curr_pane = 0;
-			content.getChildren().clear();
-			paneList.clear();
-			paintNotes();
+		try {
+			toto = midiex.extract(s);
+		} catch (InterruptedException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 
-			tempoField.setText("" + midiex.tempo);
-			rect.setHeight(content.getHeight() + 20);
+		curr_pane = 0;
+		content.getChildren().clear();
+		paneList.clear();
+		paintNotes();
 
-			GridPane contentParts = new GridPane();
-			Group partGroup = new Group();
+		tempoField.setText("" + midiex.tempo);
+		rect.setHeight(content.getHeight() + 20);
 
-			contentParts.setVgap(127 * 2);
-			innerBP.setLeft(contentParts);
+		GridPane contentParts = new GridPane();
+		Group partGroup = new Group();
 
-			double lastBeat = toto.getEndTime();
+		contentParts.setVgap(127 * 2);
+		innerBP.setLeft(contentParts);
 
-			num = toto.getNumerator();
-			den = toto.getDenominator();
-			synthesize();
+		double lastBeat = toto.getEndTime();
 
-			System.out.println(totalTime / 1000000 + " *" + midiex.tempo + "lastBeat is " + lastBeat);
-			double numMeasures = ((totalTime / 1000000) / 60 * midiex.tempo) / num;
-			measures = new MeasurePane(num, den, numMeasures);
+		num = toto.getNumerator();
+		den = toto.getDenominator();
+		synthesize();
 
-			System.out.println(numMeasures + "this many measures");
+		System.out.println(totalTime / 1000000 + " *" + midiex.tempo + "lastBeat is " + lastBeat);
+		double numMeasures = ((totalTime / 1000000) / 60 * midiex.tempo) / num;
+		measures = new MeasurePane(num, den, numMeasures);
 
-			Pane pane = new Pane();
-			scrollPane = new ZoomableScrollPane(pane);
+		System.out.println(numMeasures + "this many measures");
 
-			HUDcontent = new VBox();
+		Pane pane = new Pane();
+		scrollPane = new ZoomableScrollPane(pane);
 
-			StackPane root = new StackPane();
-			root.setAlignment(Pos.TOP_LEFT);
+		HUDcontent = new VBox();
 
-			pane.getChildren().addAll(HUDcontent, rect);
-			root.getChildren().add(scrollPane);
+		StackPane root = new StackPane();
+		root.setAlignment(Pos.TOP_LEFT);
 
-			innerBP.setCenter(root);
+		pane.getChildren().addAll(HUDcontent, rect);
+		root.getChildren().add(scrollPane);
 
-			measures.setMaxWidth(content.getChildren().get(0).getTranslateX());
-			HUDcontent.getChildren().clear();
-			HUDcontent.getChildren().addAll(measures, content);
-		});
+		innerBP.setCenter(root);
+
+		measures.setMaxWidth(content.getChildren().get(0).getTranslateX());
+		HUDcontent.getChildren().clear();
+		HUDcontent.getChildren().addAll(measures, content);
 
 	}
 

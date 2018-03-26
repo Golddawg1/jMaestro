@@ -26,15 +26,19 @@ public class MIDIPane extends Pane implements JMC {
 	ArrayList<MIDINoteBar> notes = new ArrayList<MIDINoteBar>();
 
 	String partName = "Error";
-	
+
 	int instrument = 0;
-	
+
 	Part myPart;
-	
+
+	double Pan;
+
 	Label e;
+
 	public MIDIPane(Part s) {
 		super();
 		myPart = s;
+		Pan = s.getPan();
 		MouseGestures mg = new MouseGestures();
 		mg.makeClickable(this);
 		int temp = s.getChannel();
@@ -64,7 +68,13 @@ public class MIDIPane extends Pane implements JMC {
 	public void deleteNote(MIDINoteBar n) {
 		n.getNote().getMyPhrase().empty();
 		notes.remove(n);
-		
+
+	}
+
+	public void setPan(double n) {
+		Pan = n;
+		myPart.setPan(n);
+
 	}
 
 	public void editNote(MIDINoteBar n, MIDINoteBar newNote) {
@@ -75,20 +85,15 @@ public class MIDIPane extends Pane implements JMC {
 	public String getPartInstrument() {
 		return partName;
 	}
-	
+
 	public void setInstrument(int i) {
-		
-		Platform.runLater(
-				  () -> {
-						instrument = i;
-						myPart.setInstrument(instrument);
-						partName = Constants.midiTable.getOrDefault(i, "Error");
-						e.setText(partName);
-				  }
-				);
-	
+
+		instrument = i;
+		myPart.setInstrument(instrument);
+		partName = Constants.midiTable.getOrDefault(i, "Error");
+		e.setText(partName);
+
 	}
-	
 
 	private class MouseGestures {
 
@@ -110,16 +115,17 @@ public class MIDIPane extends Pane implements JMC {
 					orgSceneY = t.getSceneY();
 
 					if (t.getSource() instanceof MIDIPane) {
-						
+
 						Node p = ((Node) (t.getSource()));
-						
+
 						double x = p.getLayoutX();
 						double y = p.getTranslateY();
-						
 
-						System.out.println("X="+(int)(t.getX()-x) + " Y=" + (int)(t.getY()-y) + "");
-						
-						System.out.println(((MIDIPane) p).getPartInstrument());
+						System.out.println("X=" + (int) (t.getX() - x) + " Y=" + (int) (t.getY() - y) + "");
+
+						System.out.println(((MIDIPane) p).getPartInstrument()+  "with the pan" + Pan);
+
+						BasicOpsTest.myCurrentMidiPane = (MIDIPane) p;
 
 					} else {
 
