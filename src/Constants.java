@@ -6,10 +6,12 @@ import javax.sound.midi.Synthesizer;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.concurrent.Task;
 import javafx.event.EventHandler;
 import javafx.scene.control.ListView;
 
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.collections.ObservableList;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
@@ -36,21 +38,38 @@ public class Constants {
 	static ListView mListView;
 
 	static void table(Synthesizer s) {
-		midiTable = new LinkedHashMap<Integer, String>();
 
-		observableList = FXCollections.observableArrayList();
-		mListView = new ListView(observableList);
-		s.getAvailableInstruments();
+		Task task = new Task<Void>() {
+			@Override
+			public Void call() {
+				Platform.runLater(new Runnable() {
+					@Override
+					public void run() {
 
-		for (int i = 0; i < s.getAvailableInstruments().length; i++) {
+						midiTable = new LinkedHashMap<Integer, String>();
 
-			midiTable.put(i, s.getAvailableInstruments()[i].getName().toUpperCase());
+						observableList = FXCollections.observableArrayList();
+						mListView = new ListView(observableList);
+						s.getAvailableInstruments();
 
-		}
+						for (int i = 0; i < s.getAvailableInstruments().length; i++) {
 
-		for (String inst : midiTable.values()) {
-			mListView.getItems().add(inst);
-		}
+							midiTable.put(i, s.getAvailableInstruments()[i].getName().toUpperCase());
+
+						}
+
+						for (String inst : midiTable.values()) {
+							mListView.getItems().add(inst);
+						}
+
+					}
+				});
+
+				return null;
+			}
+		};
+
+		BasicOpsTest.executor.execute(task);
 
 	}
 

@@ -1,12 +1,18 @@
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import javafx.application.Platform;
 import javafx.collections.*;
+import javafx.concurrent.Task;
 import javafx.event.EventHandler;
+import javafx.geometry.Bounds;
+import javafx.geometry.Point2D;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
+import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
@@ -35,6 +41,8 @@ public class MIDIPane extends Pane implements JMC {
 
 	Label e;
 
+	private final Set<KeyCode> pressedKeys = new HashSet<>();
+
 	public MIDIPane(Part s) {
 		super();
 		myPart = s;
@@ -43,6 +51,9 @@ public class MIDIPane extends Pane implements JMC {
 		mg.makeClickable(this);
 		int temp = s.getChannel();
 
+//		this.setOnKeyPressed(e -> pressedKeys.add(e.getCode()));
+//		this.setOnKeyReleased(e -> pressedKeys.remove(e.getCode()));
+		
 		if (temp == 9) {
 			partName = "Drums";
 		}
@@ -109,70 +120,86 @@ public class MIDIPane extends Pane implements JMC {
 
 			@Override
 			public void handle(MouseEvent t) {
+				Task task = new Task<Void>() {
+					@Override
+					public Void call() {
+						Platform.runLater(new Runnable() {
+							@Override
+							public void run() {
+								
+								if(t.getButton() == MouseButton.PRIMARY && t.isShiftDown()) {
+									System.out.println("Shift clicked");
+								}
+							
+								else if (t.getButton() == MouseButton.PRIMARY) {
+									orgSceneX = t.getSceneX();
+									orgSceneY = t.getSceneY();
 
-				if (t.getButton() == MouseButton.PRIMARY) {
-					orgSceneX = t.getSceneX();
-					orgSceneY = t.getSceneY();
+									if (t.getSource() instanceof MIDIPane) {
 
-					if (t.getSource() instanceof MIDIPane) {
+										Node p = ((Node) (t.getSource()));
 
-						Node p = ((Node) (t.getSource()));
+										double x = p.getLayoutX();
+										double y = p.getTranslateY();
 
-						double x = p.getLayoutX();
-						double y = p.getTranslateY();
+										System.out.println("X=" + (int) (t.getX() - x) + " Y=" + (int) (t.getY() - y) + "");
 
-						System.out.println("X=" + (int) (t.getX() - x) + " Y=" + (int) (t.getY() - y) + "");
+										System.out.println(((MIDIPane) p).getPartInstrument()+  "with the pan" + Pan);
 
-						System.out.println(((MIDIPane) p).getPartInstrument()+  "with the pan" + Pan);
+										BasicOpsTest.myCurrentMidiPane = (MIDIPane) p;
 
-						BasicOpsTest.myCurrentMidiPane = (MIDIPane) p;
+									} else {
 
-					} else {
+										// Node p = ((Node) (t.getSource()));
 
-						// Node p = ((Node) (t.getSource()));
+										// orgTranslateX = p.getTranslateX();
+										// orgTranslateY = p.getTranslateY();
 
-						// orgTranslateX = p.getTranslateX();
-						// orgTranslateY = p.getTranslateY();
+									}
+								}
+								
+								else if (t.getButton() == MouseButton.SECONDARY) {
 
+								}
+								
+								
+								 
+							}
+						});
+
+						return null;
 					}
-				}
+				};
 
-				else if (t.getButton() == MouseButton.SECONDARY) {
-
-				}
-
+				BasicOpsTest.executor.execute(task);
 			}
 
 		};
 
-		EventHandler<MouseEvent> circleOnMouseDraggedEventHandler = new EventHandler<MouseEvent>() {
+		EventHandler<MouseEvent> circleOnMouseDraggedEventHandler=new EventHandler<MouseEvent>(){
 
-			@Override
-			public void handle(MouseEvent t) {
+		@Override public void handle(MouseEvent t){
 
-				double offsetX = t.getSceneX() - orgSceneX;
-				double offsetY = t.getSceneY() - orgSceneY;
+		double offsetX=t.getSceneX()-orgSceneX;double offsetY=t.getSceneY()-orgSceneY;
 
-				// double newTranslateX = orgTranslateX + offsetX;
-				// double newTranslateY = orgTranslateY + offsetY;
+		// double newTranslateX = orgTranslateX + offsetX;
+		// double newTranslateY = orgTranslateY + offsetY;
 
-				if (t.getSource() instanceof MIDINoteBar) {
+		if(t.getSource()instanceof MIDINoteBar){
 
-					// MIDINoteBar p = ((MIDINoteBar) (t.getSource()));
-					//
-					// currentNote = p;
-					//
-					// // p.setX(newTranslateX);
-					// // p.setY(newTranslateY);
-					// System.out.println(p.noteInfo());
+		// MIDINoteBar p = ((MIDINoteBar) (t.getSource()));
+		//
+		// currentNote = p;
+		//
+		// // p.setX(newTranslateX);
+		// // p.setY(newTranslateY);
+		// System.out.println(p.noteInfo());
 
-				} else {
+		}else{
 
-					Node p = ((Node) (t.getSource()));
-				}
+		Node p=((Node)(t.getSource()));}
 
-			}
-		};
+		}};
 
 	}
 }

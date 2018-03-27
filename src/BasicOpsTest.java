@@ -18,6 +18,7 @@ import java.util.TimerTask;
 import java.util.Vector;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
@@ -117,6 +118,11 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.TextAlignment;
 
+import org.reactfx.EventStream;
+import org.reactfx.EventStreams;
+
+import java.util.concurrent.*;
+
 public class BasicOpsTest extends Application implements JMC {
 
 	Score score;
@@ -186,6 +192,8 @@ public class BasicOpsTest extends Application implements JMC {
 
 	static MIDIPane myCurrentMidiPane;
 
+	static ExecutorService executor;
+
 	public static void main(String[] args) {
 		launch(args);
 	}
@@ -194,6 +202,7 @@ public class BasicOpsTest extends Application implements JMC {
 	public void start(Stage primaryStage) throws Exception {
 
 		primaryStage.setTitle("jMaestro");
+		executor = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
 
 		primaryStage.setOnCloseRequest(new EventHandler<WindowEvent>() {
 			@Override
@@ -240,15 +249,51 @@ public class BasicOpsTest extends Application implements JMC {
 			if (sequencer.isRunning()) {
 
 				isPlaying = false;
+				Task task = new Task<Void>() {
+					@Override
+					public Void call() {
+
+						Platform.runLater(new Runnable() {
+							@Override
+							public void run() {
+								playButton.setText("Play");
+							}
+						});
+
+						return null;
+					}
+				};
+
+				executor.execute(task);
+
 				stopAction();
 			} else {
 				isPlaying = true;
 				toto.empty();
 				toto.addPartList(midiex.getPart());
-				rect.setHeight(content.getHeight());
+				rect.setHeight(content.getHeight() + 20);
 				toto.setTempo(midiex.tempo);
 
-				playButton.setText("Stop");
+				Task task = new Task<Void>() {
+					@Override
+					public Void call() {
+
+						Platform.runLater(new Runnable() {
+							@Override
+							public void run() {
+								toto.addPartList(midiex.getPart());
+								rect.setHeight(content.getHeight() + 20);
+								toto.setTempo(midiex.tempo);
+								playButton.setText("Stop");
+							}
+						});
+
+						return null;
+					}
+				};
+
+				executor.execute(task);
+
 				synthesize();
 
 				startAction();
@@ -341,36 +386,7 @@ public class BasicOpsTest extends Application implements JMC {
 			}
 		});
 
-		Executor executor = Executors.newSingleThreadScheduledExecutor();
 		executor.execute(task);
-
-		try {
-			task.get(5, TimeUnit.SECONDS);
-		} catch (Exception ex) {
-			// Handle your exception
-		}
-
-		tempoLabel.setAlignment(Pos.CENTER);
-
-		int delay = 1000; // delay for 5 sec.
-		int interval = midiex.tempo * 10 / 4; // iterate every sec.
-		Timer timer = new Timer();
-
-		timer.scheduleAtFixedRate(new TimerTask() {
-
-			public void run() {
-
-				Random random = new Random();
-				int nextInt = random.nextInt(256 * 256 * 256);
-				String colorCode1 = String.format("#%06x", nextInt);
-
-				int nextInt2 = random.nextInt(256 * 256 * 256);
-				String colorCode2 = String.format("#%06x", nextInt2);
-
-				content.setStyle("-fx-background-color: linear-gradient(from 25% 25% to 100% 100%," + colorCode1 + ", "
-						+ colorCode2 + ")");
-			}
-		}, delay, interval);
 
 		Label ol = new Label("Outer Layer");
 		bp = new BorderPane(innerBP, null, addButton, null, ol);
@@ -383,7 +399,25 @@ public class BasicOpsTest extends Application implements JMC {
 		MenuItem importFile = new MenuItem("Import");
 		importFile.setOnAction(new EventHandler<ActionEvent>() {
 			public void handle(ActionEvent t) {
-				importAction();
+
+				Task task = new Task<Void>() {
+					@Override
+					public Void call() {
+						Platform.runLater(new Runnable() {
+							@Override
+							public void run() {
+
+								importAction();
+
+							}
+						});
+
+						return null;
+					}
+				};
+
+				executor.execute(task);
+
 			}
 		});
 
@@ -471,7 +505,7 @@ public class BasicOpsTest extends Application implements JMC {
 					}
 				};
 
-				new Thread(task).start();
+				executor.execute(task);
 
 			}
 		});
@@ -489,8 +523,8 @@ public class BasicOpsTest extends Application implements JMC {
 		primaryStage.setScene(scene);
 		primaryStage.show();
 
-		content.setStyle("-fx-background-color: linear-gradient(from 25% 25% to 100% 100%, #dc143c, #661a33)");
-		bp.setStyle("-fx-background-color: linear-gradient(from 25% 25% to 100% 100%, #0091FF, #661a33)");
+		content.setStyle("-fx-background-color: linear-gradient(from 25% 0% to 100% 100%, #dc143c, #661a33)");
+		bp.setStyle("-fx-background-color: linear-gradient(from 25% 25% to 100% 100%, #0091FF, #000000)");
 
 	}
 
@@ -524,28 +558,30 @@ public class BasicOpsTest extends Application implements JMC {
 			}
 		};
 
-		new Thread(task).start();
+		executor.execute(task);
 
 	}
 
 	// Stops the playing if music and timelines, sets the current x and current time
 	// to be where song was stopped
 	private static void stopAction() {
-
 		Task task = new Task<Void>() {
 			@Override
 			public Void call() {
+
 				Platform.runLater(new Runnable() {
 					@Override
 					public void run() {
+
 						currentTime = sequencer.getMicrosecondPosition();
 						currentRectX = rect.getTranslateX();
 
 						sequencer.stop();
-						barTimeLine.stop();
-						scrollingTimeLine.stop();
+						if (barTimeLine != null)
+							barTimeLine.stop();
+						if (scrollingTimeLine != null)
+							scrollingTimeLine.stop();
 						playButton.setText("Play");
-
 					}
 				});
 
@@ -553,7 +589,7 @@ public class BasicOpsTest extends Application implements JMC {
 			}
 		};
 
-		new Thread(task).start();
+		executor.execute(task);
 
 	}
 
@@ -574,15 +610,16 @@ public class BasicOpsTest extends Application implements JMC {
 				Platform.runLater(new Runnable() {
 					@Override
 					public void run() {
-					
+
 						stopAction();
 						System.out.println("The x is: " + curr);
 						rect.translateXProperty().set(curr);
-						System.out.println("The x for rect is: " + rect.getX());
+						System.out.println("The x for rect is: " + rect.getTranslateX());
 						currentRectX = curr;
 						currentTime = convertToMicro((long) curr);
 						sequencer.setMicrosecondPosition((long) currentTime);
-						System.out.println("The sequencer is at microsecond length: " + sequencer.getMicrosecondLength());
+						System.out
+								.println("The sequencer is at microsecond length: " + sequencer.getMicrosecondLength());
 						startAction();
 
 					}
@@ -592,8 +629,8 @@ public class BasicOpsTest extends Application implements JMC {
 			}
 		};
 
-		new Thread(task).start();
-		
+		executor.execute(task);
+
 	}
 
 	// the timeline for the rect
@@ -607,7 +644,7 @@ public class BasicOpsTest extends Application implements JMC {
 				// new KeyValue(rect.translateXProperty(), (content.getWidth() / 2) - 1),
 				// new KeyValue(rect.translateYProperty(), 0)),
 
-				new KeyFrame(songTime, new KeyValue(rect.translateXProperty(), content.getWidth()),
+				new KeyFrame(songTime, new KeyValue(rect.translateXProperty(), content.getWidth() - 5),
 						new KeyValue(rect.translateYProperty(), 0)));
 
 		System.out.println(totalTime / 1000);
@@ -633,6 +670,7 @@ public class BasicOpsTest extends Application implements JMC {
 		panes = midiex.getPaneList();
 
 		for (int i = 0; i < panes.size(); i++) {
+
 			content.add(panes.get(curr_pane), 0, curr_pane);
 			curr_pane++;
 
@@ -646,11 +684,7 @@ public class BasicOpsTest extends Application implements JMC {
 		currentTime = 0;
 		rect.translateXProperty().set(currentRectX);
 		// bp.setStyle("-fx-background-color: #F0591E;");
-		if (toto != null) {
-			toto.clean();
 
-			toto.setTempo(midiex.tempo);
-		}
 		midiex = new MIDINoteExtractor();
 		Path s = null;
 

@@ -1,7 +1,9 @@
 import java.util.ArrayList;
 import java.util.List;
 
+import javafx.application.Platform;
 import javafx.collections.*;
+import javafx.concurrent.Task;
 import javafx.event.EventHandler;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
@@ -20,6 +22,7 @@ import jm.music.data.Part;
 public class MeasurePane extends Pane implements JMC {
 
 	int num, den;
+	MeasurePane myInstance;
 
 	public int getNum() {
 		return num;
@@ -54,33 +57,56 @@ public class MeasurePane extends Pane implements JMC {
 		this.den = den;
 		measures = numMeasures;
 		mg = new MouseGestures();
+		myInstance = this;
 
 		mg.makeClickable(this);
 		populate();
+	
 
 		System.out.println(num + "/" + den);
 	}
 
 	/*
-	 * This populates the measures with numbers and the lines which are actually rectangles of width 2
+	 * This populates the measures with numbers and the lines which are actually
+	 * rectangles of width 2
 	 */
 	public void populate() {
-		double currentX = 0;
-		for (int i = 1; i <= measures + 1; i++) {
-			Rectangle l = new Rectangle(currentX, 0, 2, 10);
-			Text t = new Text();
-			mg.makeClickable(l);
-			t.setText(i + "");
-			t.setY(10);
-			t.setX(currentX + 3);
-			currentX += 80 / this.den;
-			this.getChildren().addAll(l, t);
-			for (int j = 1; j < num; j++) {
-				Rectangle g = new Rectangle(currentX, 0, 2, 5);
-				currentX += 20;
-				this.getChildren().add(g);
+
+		Task task = new Task<Void>() {
+			@Override
+			public Void call() {
+				Platform.runLater(new Runnable() {
+					@Override
+					public void run() {
+
+						double currentX = 0;
+						for (int i = 1; i <= measures + 1; i++) {
+							Rectangle l = new Rectangle(currentX, 0, 2, 10);
+							l.setFill(Color.RED);
+							Text t = new Text();
+							t.setFill(Color.WHITE);
+							mg.makeClickable(l);
+							t.setText(i + "");
+							t.setY(10);
+							t.setX(currentX + 3);
+							currentX += 80 / myInstance.den;
+							myInstance.getChildren().addAll(l, t);
+							for (int j = 1; j < num; j++) {
+								Rectangle g = new Rectangle(currentX, 0, 2, 5);
+								g.setFill(Color.WHITE);
+								currentX += 20;
+								myInstance.getChildren().add(g);
+							}
+
+						}
+					}
+				});
+
+				return null;
 			}
-		}
+		};
+
+		BasicOpsTest.executor.execute(task);
 
 	}
 

@@ -3,17 +3,31 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
+import javafx.application.Platform;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
+import javafx.collections.transformation.FilteredList;
+import javafx.concurrent.Task;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
+import javafx.scene.Group;
 import javafx.scene.Node;
+import javafx.scene.Scene;
+import javafx.scene.control.TextField;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Background;
 import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.CornerRadii;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
 import jm.JMC;
 import jm.audio.Instrument;
 import jm.music.data.*;
@@ -44,25 +58,28 @@ public class MIDINoteExtractor implements JMC {
 		if (file.isFile()) {
 			toto = Read.midiOrJmWithNoMessaging(file);
 			// Read.midi(toto, file.getAbsolutePath());
-			tempo = (int) toto.getTempo();
+			if (toto != null) {
+				tempo = (int) toto.getTempo();
+			}
 		}
 		ArrayList<MyThead> threads = new ArrayList<MyThead>();
 
-		Part[] temp = toto.getPartArray();
-		for (int i = 0; i < toto.getPartArray().length; i++) {
+		if (toto != null) {
+			Part[] temp = toto.getPartArray();
+			for (int i = 0; i < toto.getPartArray().length; i++) {
 
-			MyThead thead = new MyThead(temp, i);
-			threads.add(thead);
-			thead.start();
+				MyThead thead = new MyThead(temp, i);
+				threads.add(thead);
+				thead.start();
+			}
+
+			for (int i = 0; i < threads.size(); i++) {
+				threads.get(i).join();
+				panes.add(threads.get(i).getMP());
+			}
+
+			toto.setTitle(file.getName());
 		}
-
-		for (int i = 0; i < threads.size(); i++) {
-			threads.get(i).join();
-			panes.add(threads.get(i).getMP());
-		}
-
-		toto.setTitle(file.getName());
-		toto.setTempo(tempo);
 		return toto;
 	}
 
@@ -110,8 +127,7 @@ public class MIDINoteExtractor implements JMC {
 		pane = new MIDIPane(part);
 		pane.setMaxHeight(127);
 		pane.setPrefHeight(127);
-		pane.setBackground(
-				new Background(new BackgroundFill(Color.LIGHTGOLDENRODYELLOW, CornerRadii.EMPTY, Insets.EMPTY)));
+		pane.setBackground(new Background(new BackgroundFill(Color.WHITESMOKE, CornerRadii.EMPTY, Insets.EMPTY)));
 		ArrayList<MIDINoteBar> notes = new ArrayList<MIDINoteBar>();
 
 		ArrayList<Note> noteList = new ArrayList<Note>();
@@ -187,35 +203,53 @@ public class MIDINoteExtractor implements JMC {
 			@Override
 			public void handle(MouseEvent t) {
 
-				if (t.getButton() == MouseButton.PRIMARY) {
-					orgSceneX = t.getSceneX();
-					orgSceneY = t.getSceneY();
+				Task task = new Task<Void>() {
+					@Override
+					public Void call() {
 
-					if (t.getSource() instanceof MIDINoteBar) {
+						Platform.runLater(new Runnable() {
+							@Override
+							public void run() {
 
-						MIDINoteBar p = ((MIDINoteBar) (t.getSource()));
-						p.setFill(Color.RED);
-						mnbs.add(p);
+								if (t.getButton() == MouseButton.PRIMARY) {
+									orgSceneX = t.getSceneX();
+									orgSceneY = t.getSceneY();
 
-						System.out.println(p.noteInfo());
+									if (t.getSource() instanceof MIDINoteBar) {
 
-					} else {
+										MIDINoteBar p = ((MIDINoteBar) (t.getSource()));
+										p.setFill(Color.RED);
+										mnbs.add(p);
 
-						Node p = ((Node) (t.getSource()));
+										System.out.println(p.noteInfo());
 
-						// orgTranslateX = p.getTranslateX();
-						// orgTranslateY = p.getTranslateY();
+									} else {
 
+										Node p = ((Node) (t.getSource()));
+
+										// orgTranslateX = p.getTranslateX();
+										// orgTranslateY = p.getTranslateY();
+
+									}
+								}
+
+								else if (t.getButton() == MouseButton.SECONDARY) {
+									for (int i = 0; i < mnbs.size(); i++) {
+										mnbs.get(i).setFill(Color.BLACK);
+									}
+									mnbs.clear();
+
+								}
+
+							}
+						});
+
+						return null;
 					}
-				}
+				};
 
-				else if (t.getButton() == MouseButton.SECONDARY) {
-					for (int i = 0; i < mnbs.size(); i++) {
-						mnbs.get(i).setFill(Color.BLACK);
-					}
-					mnbs.clear();
+				BasicOpsTest.executor.submit(task);
 
-				}
 			}
 
 		};
@@ -225,44 +259,63 @@ public class MIDINoteExtractor implements JMC {
 			@Override
 			public void handle(MouseEvent t) {
 
-				double offsetX = t.getSceneX() - orgSceneX;
-				double offsetY = t.getSceneY() - orgSceneY;
+				Task task = new Task<Void>() {
+					@Override
+					public Void call() {
 
-				double newTranslateX = orgTranslateX + offsetX;
-				double newTranslateY = orgTranslateY + offsetY;
+						Platform.runLater(new Runnable() {
+							@Override
+							public void run() {
 
-				if (t.getSource() instanceof MIDINoteBar) {
+								double offsetX = t.getSceneX() - orgSceneX;
+								double offsetY = t.getSceneY() - orgSceneY;
 
-					MIDINoteBar p = mnbs.get(0);
+								double newTranslateX = orgTranslateX + offsetX;
+								double newTranslateY = orgTranslateY + offsetY;
 
-					double x = p.getPane().getTranslateX();
-					double y = p.getPane().getTranslateY();
+								if (t.getSource() instanceof MIDINoteBar) {
 
-					double newX = (int) (t.getX() - x);
-					int newY = (int) (t.getY() - y);
+									if (mnbs.size() > 0) {
+										MIDINoteBar p = mnbs.get(0);
 
-					if (newY >= 0 && newY < 127 && newX >= 0 && newX < p.getPane().getWidth()) {
-						p.setX(newX);
-						p.setY(newY);
+										double x = p.getPane().getTranslateX();
+										double y = p.getPane().getTranslateY();
 
-						p.setPitch(newY);
+										double newX = (int) (t.getX() - x);
+										int newY = (int) (t.getY() - y);
 
-						p.setStartfromX(newX);
+										if (newY >= 0 && newY < 127 && newX >= 0 && newX < p.getPane().getWidth()) {
+											p.setX(newX);
+											p.setY(newY);
+
+											p.setPitch(newY);
+
+											p.setStartfromX(newX);
+										}
+										System.out.println(p.noteInfo());
+									}
+
+								} else {
+
+									Node p = ((Node) (t.getSource()));
+								}
+							}
+						});
+
+						return null;
 					}
-					System.out.println(p.noteInfo());
+				};
 
-				} else {
-
-					Node p = ((Node) (t.getSource()));
-				}
+				BasicOpsTest.executor.execute(task);
 
 			}
 		};
 
 	}
-/*
- * Handles the the thread for extract notes
- */
+
+	/*
+	 * Handles the the thread for extract notes
+	 */
 	private class MyThead extends Thread {
 		int k;
 		Part[] p;
