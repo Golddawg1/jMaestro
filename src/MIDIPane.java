@@ -8,6 +8,7 @@ import javafx.collections.*;
 import javafx.concurrent.Task;
 import javafx.event.EventHandler;
 import javafx.geometry.Bounds;
+import javafx.geometry.Insets;
 import javafx.geometry.Point2D;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -15,11 +16,17 @@ import javafx.scene.control.Label;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.Background;
+import javafx.scene.layout.BackgroundFill;
+import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.Region;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Shape;
 import jm.JMC;
+import jm.music.data.Note;
 import jm.music.data.Part;
+import jm.music.data.Phrase;
 
 interface NoteChangeListener {
 	void noteChanged();
@@ -41,6 +48,8 @@ public class MIDIPane extends Pane implements JMC {
 
 	Label e;
 
+	boolean selected;
+
 	private final Set<KeyCode> pressedKeys = new HashSet<>();
 
 	public MIDIPane(Part s) {
@@ -51,9 +60,13 @@ public class MIDIPane extends Pane implements JMC {
 		mg.makeClickable(this);
 		int temp = s.getChannel();
 
-//		this.setOnKeyPressed(e -> pressedKeys.add(e.getCode()));
-//		this.setOnKeyReleased(e -> pressedKeys.remove(e.getCode()));
-		
+		this.setMaxHeight(127);
+		this.setPrefHeight(127);
+		this.setBackground(new Background(new BackgroundFill(Color.WHITESMOKE, CornerRadii.EMPTY, Insets.EMPTY)));
+
+		// this.setOnKeyPressed(e -> pressedKeys.add(e.getCode()));
+		// this.setOnKeyReleased(e -> pressedKeys.remove(e.getCode()));
+
 		if (temp == 9) {
 			partName = "Drums";
 		}
@@ -74,6 +87,7 @@ public class MIDIPane extends Pane implements JMC {
 
 	public void addNote(MIDINoteBar n) {
 		notes.add(n);
+
 	}
 
 	public void deleteNote(MIDINoteBar n) {
@@ -106,6 +120,36 @@ public class MIDIPane extends Pane implements JMC {
 
 	}
 
+	public void setSelected(boolean sel) {
+
+		Task task = new Task<Void>() {
+			@Override
+			public Void call() {
+				Platform.runLater(new Runnable() {
+					@Override
+					public void run() {
+
+						if (sel == false) {
+							instance.setBackground(new Background(
+									new BackgroundFill(Color.WHITESMOKE, CornerRadii.EMPTY, Insets.EMPTY)));
+						}
+
+						else {
+							instance.setBackground(new Background(
+									new BackgroundFill(Color.LIGHTCYAN, CornerRadii.EMPTY, Insets.EMPTY)));
+
+						}
+					}
+				});
+
+				return null;
+			}
+		};
+
+		BasicOpsTest.executor.execute(task);
+
+	}
+
 	private class MouseGestures {
 
 		double orgSceneX, orgSceneY;
@@ -120,86 +164,121 @@ public class MIDIPane extends Pane implements JMC {
 
 			@Override
 			public void handle(MouseEvent t) {
-				Task task = new Task<Void>() {
-					@Override
-					public Void call() {
-						Platform.runLater(new Runnable() {
-							@Override
-							public void run() {
-								
-								if(t.getButton() == MouseButton.PRIMARY && t.isShiftDown()) {
-									System.out.println("Shift clicked");
-								}
-							
-								else if (t.getButton() == MouseButton.PRIMARY) {
-									orgSceneX = t.getSceneX();
-									orgSceneY = t.getSceneY();
 
-									if (t.getSource() instanceof MIDIPane) {
+				if (t.getButton() == MouseButton.PRIMARY && t.isShiftDown()) {
+					System.out.println("Shift clicked");
+				}
 
-										Node p = ((Node) (t.getSource()));
+				if (t.getButton() == MouseButton.PRIMARY && t.isShiftDown()) {
+					orgSceneX = t.getSceneX();
+					orgSceneY = t.getSceneY();
 
-										double x = p.getLayoutX();
-										double y = p.getTranslateY();
+					if (t.getSource() instanceof MIDIPane) {
 
-										System.out.println("X=" + (int) (t.getX() - x) + " Y=" + (int) (t.getY() - y) + "");
+						Node z = ((Node) (t.getSource()));
+						MIDIPane p = (MIDIPane) z;
+						if (p != null && BasicOpsTest.myCurrentMidiPane != null
+								&& p != BasicOpsTest.myCurrentMidiPane) {
 
-										System.out.println(((MIDIPane) p).getPartInstrument()+  "with the pan" + Pan);
+							BasicOpsTest.myCurrentMidiPane.setSelected(false);
 
-										BasicOpsTest.myCurrentMidiPane = (MIDIPane) p;
+						}
+						double x = p.getLayoutX();
+						double y = p.getTranslateY();
 
-									} else {
+						System.out.println("X=" + (int) (t.getX() - x) + " Y=" + (int) (t.getY() - y) + "");
 
-										// Node p = ((Node) (t.getSource()));
+						System.out.println(((MIDIPane) p).getPartInstrument() + "with the pan" + Pan);
 
-										// orgTranslateX = p.getTranslateX();
-										// orgTranslateY = p.getTranslateY();
+						BasicOpsTest.myCurrentMidiPane = (MIDIPane) p;
 
-									}
-								}
-								
-								else if (t.getButton() == MouseButton.SECONDARY) {
+						BasicOpsTest.myCurrentMidiPane.setSelected(true);
 
-								}
-								
-								
-								 
-							}
-						});
+					} else {
 
-						return null;
+						// Node p = ((Node) (t.getSource()));
+
+						// orgTranslateX = p.getTranslateX();
+						// orgTranslateY = p.getTranslateY();
+
 					}
-				};
+				}
 
-				BasicOpsTest.executor.execute(task);
+				else if (t.getButton() == MouseButton.PRIMARY && t.isShortcutDown()) {
+
+					instance = BasicOpsTest.myCurrentMidiPane;
+					double x = instance.getTranslateX();
+					double y = instance.getTranslateY();
+
+					int fx = (int) (t.getX() - x);
+					int fy = (int) (t.getY() - y);
+
+					if (y >= 0 && y < 127 && x >= 0 && x < instance.getWidth()) {
+						double length = 1;
+						Note note = new Note();
+						note.setPitch((fy *-1) + 127);
+						Phrase phrase = new Phrase();
+						phrase.add(note);
+						phrase.setStartTime(fx/20);
+						MIDINoteBar n = new MIDINoteBar(fx/20, fy * -1 + 127, length, 3, note, fx/20);
+						MIDINoteExtractor.midibar.makeDraggable(n);
+						n.setPane(instance);
+						instance.addNote(n);
+						myPart.add(phrase);
+
+						Task task = new Task<Void>() {
+							@Override
+							public Void call() {
+								Platform.runLater(new Runnable() {
+									@Override
+									public void run() {
+										instance.getChildren().add(n);
+									}
+								});
+
+								return null;
+							}
+						};
+
+						BasicOpsTest.executor.execute(task);
+
+						System.out.println("You addded" + note.toString());
+					}
+
+				}
+
 			}
 
 		};
 
-		EventHandler<MouseEvent> circleOnMouseDraggedEventHandler=new EventHandler<MouseEvent>(){
+		EventHandler<MouseEvent> circleOnMouseDraggedEventHandler = new EventHandler<MouseEvent>() {
 
-		@Override public void handle(MouseEvent t){
+			@Override
+			public void handle(MouseEvent t) {
 
-		double offsetX=t.getSceneX()-orgSceneX;double offsetY=t.getSceneY()-orgSceneY;
+				double offsetX = t.getSceneX() - orgSceneX;
+				double offsetY = t.getSceneY() - orgSceneY;
 
-		// double newTranslateX = orgTranslateX + offsetX;
-		// double newTranslateY = orgTranslateY + offsetY;
+				// double newTranslateX = orgTranslateX + offsetX;
+				// double newTranslateY = orgTranslateY + offsetY;
 
-		if(t.getSource()instanceof MIDINoteBar){
+				if (t.getSource() instanceof MIDINoteBar) {
 
-		// MIDINoteBar p = ((MIDINoteBar) (t.getSource()));
-		//
-		// currentNote = p;
-		//
-		// // p.setX(newTranslateX);
-		// // p.setY(newTranslateY);
-		// System.out.println(p.noteInfo());
+					// MIDINoteBar p = ((MIDINoteBar) (t.getSource()));
+					//
+					// currentNote = p;
+					//
+					// // p.setX(newTranslateX);
+					// // p.setY(newTranslateY);
+					// System.out.println(p.noteInfo());
 
-		}else{
+				} else {
 
-		Node p=((Node)(t.getSource()));}
+					Node p = ((Node) (t.getSource()));
+				}
 
-		}};
+			}
+		};
 
 	}
 }

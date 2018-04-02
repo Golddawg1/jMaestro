@@ -12,13 +12,15 @@ public class MIDINoteBar extends Rectangle implements JMC {
 	Note n;
 	double startTime;
 	MIDIPane pane;
+	
+	
 
 	MIDINoteBar(double x, double y, double width, double height, Note note, double time) {
 		super();
 
 		n = note;
 		startTime = time;
-		this.setX(x * 20 + .1);
+		this.setX(x * 20 );
 		this.setY(y * -1 + 127);
 		this.setWidth(width * 20 - 1);
 		this.setHeight(2);

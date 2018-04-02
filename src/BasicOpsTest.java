@@ -317,14 +317,16 @@ public class BasicOpsTest extends Application implements JMC {
 		Button addButton = new Button("+");
 		addButton.setOnAction(e -> {
 
-			ArrayList<MIDINoteBar> temp = midiex.getMNB();
-			for (int i = 0; i < temp.size(); i++) {
-				Note n = temp.get(i).getNote();
-				n.setPitch(n.getPitch() + 1);
-				temp.get(i).setNote(n);
-				// midiex.setMNB(temp);
+			addTrack();
 
-			}
+			// ArrayList<MIDINoteBar> temp = midiex.getMNB();
+			// for (int i = 0; i < temp.size(); i++) {
+			// Note n = temp.get(i).getNote();
+			// n.setPitch(n.getPitch() + 1);
+			// temp.get(i).setNote(n);
+			// midiex.setMNB(temp);
+			//
+			// }
 
 		});
 
@@ -562,6 +564,93 @@ public class BasicOpsTest extends Application implements JMC {
 
 	}
 
+	public void addTrack() {
+
+		Task task = new Task<Void>() {
+			@Override
+			public Void call() {
+
+				Platform.runLater(new Runnable() {
+					@SuppressWarnings("unchecked")
+					@Override
+					public void run() {
+
+						Stage dialog = new Stage();
+						dialog.initModality(Modality.APPLICATION_MODAL);
+						dialog.initOwner(primaryStage);
+						// VBox dialogVbox = new VBox(20);
+						//
+						HBox listViewPanel = new HBox();
+						listViewPanel.setSpacing(10);
+
+						// the text to be displayed when clicking on a new item in the list.
+
+						final Text label = new Text("Nothing Selected.");
+						if (myCurrentMidiPane != null) {
+							label.setText(myCurrentMidiPane.getPartInstrument());
+						} else {
+							label.setText("Nothing Selected");
+						}
+						label.setFont(Font.font(null, FontWeight.BOLD, 16));
+
+						FilteredList<String> filteredData = new FilteredList<>(Constants.observableList, s -> true);
+
+						TextField filterInput = new TextField();
+						filterInput.textProperty().addListener(obs -> {
+							String filter = filterInput.getText();
+							if (filter == null || filter.length() == 0) {
+								filteredData.setPredicate(s -> true);
+							} else {
+								filteredData.setPredicate(s -> s.contains(filter.toUpperCase()));
+							}
+
+							Constants.mListView.setItems(filteredData);
+						});
+
+						// create a list of items.
+
+						Constants.mListView.getSelectionModel().selectedItemProperty()
+								.addListener(new ChangeListener<String>() {
+
+									public void changed(ObservableValue<? extends String> observable, String oldValue,
+											String newValue) {
+										// change the label text value to the newly selected
+										// item.
+										label.setText(newValue);
+										Part p = new Part();
+										MIDIPane t = new MIDIPane(p);
+
+										if (t != null)
+											t.setInstrument((int) Constants.getKeyFromValue(newValue));
+										midiex.addPane(t);
+										paintNotes();
+									}
+								});
+						Group instedit = new Group();
+						listViewPanel.getChildren().addAll(Constants.mListView, label, filterInput);
+						instedit.getChildren().addAll(listViewPanel);
+
+						Scene dialogScene = new Scene(instedit, 400, 400);
+						dialog.setScene(dialogScene);
+						dialog.show();
+					}
+				});
+
+				return null;
+			}
+		};
+
+		executor.execute(task);
+
+	}
+
+	private void flushExecutor() {
+
+		executor.shutdown();
+		executor = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
+
+	}
+
 	// Stops the playing if music and timelines, sets the current x and current time
 	// to be where song was stopped
 	private static void stopAction() {
@@ -573,14 +662,6 @@ public class BasicOpsTest extends Application implements JMC {
 					@Override
 					public void run() {
 
-						currentTime = sequencer.getMicrosecondPosition();
-						currentRectX = rect.getTranslateX();
-
-						sequencer.stop();
-						if (barTimeLine != null)
-							barTimeLine.stop();
-						if (scrollingTimeLine != null)
-							scrollingTimeLine.stop();
 						playButton.setText("Play");
 					}
 				});
@@ -590,6 +671,14 @@ public class BasicOpsTest extends Application implements JMC {
 		};
 
 		executor.execute(task);
+		currentTime = sequencer.getMicrosecondPosition();
+		currentRectX = rect.getTranslateX();
+
+		sequencer.stop();
+		if (barTimeLine != null)
+			barTimeLine.stop();
+		if (scrollingTimeLine != null)
+			scrollingTimeLine.stop();
 
 	}
 
@@ -667,11 +756,14 @@ public class BasicOpsTest extends Application implements JMC {
 
 	// Initially creates the notes
 	private void paintNotes() {
+		content.getChildren().clear();
 		panes = midiex.getPaneList();
-
+		curr_pane = 0;
 		for (int i = 0; i < panes.size(); i++) {
 
-			content.add(panes.get(curr_pane), 0, curr_pane);
+			System.out.println("Your size is " + i);
+
+			content.add(panes.get(i), 0, i);
 			curr_pane++;
 
 		}
@@ -680,6 +772,7 @@ public class BasicOpsTest extends Application implements JMC {
 	// This handles everything to import a song
 	public void importAction() {
 
+		flushExecutor();
 		currentRectX = 0;
 		currentTime = 0;
 		rect.translateXProperty().set(currentRectX);

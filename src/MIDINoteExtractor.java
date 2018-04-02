@@ -35,15 +35,16 @@ import jm.util.Read;
 
 public class MIDINoteExtractor implements JMC {
 
-	MouseGestures midibar = new MouseGestures();
+	static MouseGestures midibar;
 	ArrayList<MIDIPane> panes = new ArrayList<MIDIPane>();
 	ArrayList<Part> allParts = new ArrayList<Part>();
+	
 	public int tempo = 90;
 
 	ArrayList<MIDINoteBar> mnbs = new ArrayList<MIDINoteBar>();
 
 	public MIDINoteExtractor() {
-
+		 midibar = new MouseGestures();
 	}
 
 	/*
@@ -71,12 +72,14 @@ public class MIDINoteExtractor implements JMC {
 				MyThead thead = new MyThead(temp, i);
 				threads.add(thead);
 				thead.start();
-			}
-
-			for (int i = 0; i < threads.size(); i++) {
+				
 				threads.get(i).join();
 				panes.add(threads.get(i).getMP());
 			}
+
+//			for (int i = 0; i < threads.size(); i++) {
+//
+//			}
 
 			toto.setTitle(file.getName());
 		}
@@ -86,6 +89,11 @@ public class MIDINoteExtractor implements JMC {
 	public ArrayList<MIDIPane> getPaneList() {
 		return panes;
 	}
+	
+	public void addPane(MIDIPane m) {
+		panes.add(m);
+	}
+
 
 	public ArrayList<MIDINoteBar> getMNB() {
 		return mnbs;
@@ -188,7 +196,7 @@ public class MIDINoteExtractor implements JMC {
 		return allParts.toArray(new Part[allParts.size()]);
 	}
 
-	private class MouseGestures {
+	class MouseGestures {
 
 		double orgSceneX, orgSceneY;
 		double orgTranslateX, orgTranslateY;
