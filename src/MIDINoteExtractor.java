@@ -1,7 +1,12 @@
 import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.TreeMap;
 
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
@@ -38,13 +43,13 @@ public class MIDINoteExtractor implements JMC {
 	static MouseGestures midibar;
 	ArrayList<MIDIPane> panes = new ArrayList<MIDIPane>();
 	ArrayList<Part> allParts = new ArrayList<Part>();
-	
+
 	public int tempo = 90;
 
 	ArrayList<MIDINoteBar> mnbs = new ArrayList<MIDINoteBar>();
 
 	public MIDINoteExtractor() {
-		 midibar = new MouseGestures();
+		midibar = new MouseGestures();
 	}
 
 	/*
@@ -72,14 +77,14 @@ public class MIDINoteExtractor implements JMC {
 				MyThead thead = new MyThead(temp, i);
 				threads.add(thead);
 				thead.start();
-				
+
 				threads.get(i).join();
 				panes.add(threads.get(i).getMP());
 			}
 
-//			for (int i = 0; i < threads.size(); i++) {
-//
-//			}
+			// for (int i = 0; i < threads.size(); i++) {
+			//
+			// }
 
 			toto.setTitle(file.getName());
 		}
@@ -89,11 +94,10 @@ public class MIDINoteExtractor implements JMC {
 	public ArrayList<MIDIPane> getPaneList() {
 		return panes;
 	}
-	
+
 	public void addPane(MIDIPane m) {
 		panes.add(m);
 	}
-
 
 	public ArrayList<MIDINoteBar> getMNB() {
 		return mnbs;
@@ -162,8 +166,11 @@ public class MIDINoteExtractor implements JMC {
 			else {
 				Note tempNote = new Note(nt.getPitch(), nt.getRhythmValue());
 
-				MIDINoteBar n = new MIDINoteBar(timeList.get(q), nt.getPitch(), nt.getRhythmValue(), 3, tempNote,
-						timeList.get(q));
+				double rhythm = nt.getRhythmValue();
+				rhythm = Math.round(rhythm * 100);
+				rhythm = rhythm / 100;
+
+				MIDINoteBar n = new MIDINoteBar(timeList.get(q), nt.getPitch(), rhythm, 3, tempNote, timeList.get(q));
 				midibar.makeDraggable(n);
 				n.setPane(pane);
 				part.addNote(n.getNote(), n.getStartTime());
@@ -177,11 +184,13 @@ public class MIDINoteExtractor implements JMC {
 		pane.getChildren().addAll(notes);
 
 		s = part;
-
+		// part.setTitle(Constants.getKeyFromValue(part.getInstrument()) + "");
 		return pane;
 	}
 
 	public Part[] getPart() {
+
+		Map<String, Integer> channelMap = new LinkedHashMap<String, Integer>();
 
 		for (int i = 0; i < allParts.size(); i++) {
 			for (int j = 0; j < allParts.get(i).getPhraseArray().length; j++) {
@@ -193,7 +202,49 @@ public class MIDINoteExtractor implements JMC {
 				}
 			}
 		}
+
+		int next = 0;
+		for (int i = 0; i < allParts.size(); i++) {
+
+			if (allParts.get(i).getChannel() == 9) {
+				channelMap.put("DRUMS", 9);
+			} else {
+
+				String inst = (String) Constants.midiTable.get(allParts.get(i).getInstrument());
+				if (!channelMap.containsKey(inst)) {
+
+					if (next == 9)
+						next = 10;
+					channelMap.put(inst, next);
+					next++;
+				}
+			}
+		}
+
+		for (Entry<String, Integer> entry : channelMap.entrySet()) {
+			System.out.println(entry.getKey() + " - " + entry.getValue());
+		}
+
+		for (int q = 0; q < allParts.size(); q++) {
+			Part temp = allParts.get(q);
+			int inst = temp.getInstrument();
+
+			System.out.println(inst + " the inst");
+
+			String instName = (String) Constants.midiTable.get(allParts.get(q).getInstrument());
+			System.out.println(allParts.size() + "this si the instrument");
+			if (allParts.get(q).getChannel() != 9)
+				allParts.get(q).setChannel(channelMap.get(instName));
+
+		}
+
 		return allParts.toArray(new Part[allParts.size()]);
+
+	}
+
+	public void addPart(Part p) {
+
+		allParts.add(p);
 	}
 
 	class MouseGestures {
@@ -219,6 +270,11 @@ public class MIDINoteExtractor implements JMC {
 							@Override
 							public void run() {
 
+								if (t.getButton() == MouseButton.PRIMARY && t.isAltDown()) {
+
+									BasicOpsTest.noteEdit(mnbs.get(0));
+
+								}
 								if (t.getButton() == MouseButton.PRIMARY) {
 									orgSceneX = t.getSceneX();
 									orgSceneY = t.getSceneY();

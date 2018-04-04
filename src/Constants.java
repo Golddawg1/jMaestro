@@ -34,8 +34,13 @@ public class Constants {
 	 */
 	public static Map<Integer, String> midiTable;
 
+	public static Map<Integer, String> pitchTable;
+
 	static ObservableList observableList;
 	static ListView mListView;
+
+	static ObservableList addObservableList;
+	static ListView addListView;
 
 	static void table(Synthesizer s) {
 
@@ -49,7 +54,10 @@ public class Constants {
 						midiTable = new LinkedHashMap<Integer, String>();
 
 						observableList = FXCollections.observableArrayList();
+						addObservableList = FXCollections.observableArrayList();
+
 						mListView = new ListView(observableList);
+						addListView = new ListView(addObservableList);
 						s.getAvailableInstruments();
 
 						for (int i = 0; i < s.getAvailableInstruments().length; i++) {
@@ -58,8 +66,11 @@ public class Constants {
 
 						}
 
+						midiTable.put(666, "DRUMS");
+
 						for (String inst : midiTable.values()) {
 							mListView.getItems().add(inst);
+							addListView.getItems().add(inst);
 						}
 
 					}
@@ -83,13 +94,77 @@ public class Constants {
 		});
 	}
 
-	public static Object getKeyFromValue(Object value) {
-		for (Object o : midiTable.keySet()) {
+	public static int getKeyFromValue(String value) {
+		for (int o : midiTable.keySet()) {
 			if (midiTable.get(o).equals(value)) {
 				return o;
 			}
 		}
-		return null;
+		return 0;
 	}
 
+	public static void pitchTable() {
+
+		pitchTable = new LinkedHashMap<Integer, String>();
+		String letter = "C";
+		int interval = -1;
+		int midiValue = 0;
+		for (int o = 0; o < 11; o++) {
+			for (int i = 0; i < 12; i++) {
+
+				switch (i) {
+				case (0):
+					letter = "C";
+					break;
+				case (1):
+					letter = "C#";
+					break;
+				case (2):
+					letter = "D";
+					break;
+				case (3):
+					letter = "D#";
+					break;
+				case (4):
+					letter = "E";
+					break;
+				case (5):
+					letter = "F";
+					break;
+				case (6):
+					letter = "F#";
+					break;
+				case (7):
+					letter = "G";
+					break;
+				case (8):
+					letter = "G#";
+					break;
+				case (9):
+					letter = "A";
+					break;
+				case (10):
+					letter = "A#";
+					break;
+				case (12):
+					letter = "B";
+					break;
+
+				}
+				pitchTable.put(midiValue, letter + interval);
+				midiValue++;
+			}
+
+			interval++;
+		}
+
+		for (int name : pitchTable.keySet()) {
+
+			int key = name;
+			String value = pitchTable.get(name).toString();
+			System.out.println(key + " " + value);
+
+		}
+
+	}
 }

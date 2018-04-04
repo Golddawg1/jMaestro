@@ -91,6 +91,7 @@ import javafx.stage.StageStyle;
 import javafx.stage.WindowEvent;
 import javafx.util.Duration;
 import jm.JMC;
+import jm.constants.Pitches;
 import jm.music.data.*;
 import jm.music.*;
 import jm.util.*;
@@ -98,6 +99,8 @@ import jm.gui.show.*;
 
 import java.util.AbstractMap.SimpleEntry;
 import java.util.Map.Entry;
+import java.util.Optional;
+
 import javafx.application.Application;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
@@ -105,6 +108,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.effect.Effect;
 import javafx.scene.effect.Glow;
@@ -123,7 +127,7 @@ import org.reactfx.EventStreams;
 
 import java.util.concurrent.*;
 
-public class BasicOpsTest extends Application implements JMC {
+public class BasicOpsTest extends Application implements JMC, Pitches {
 
 	Score score;
 	GraphicsContext gc = null;
@@ -172,7 +176,7 @@ public class BasicOpsTest extends Application implements JMC {
 
 	ArrayList<MIDIPane> panes;
 
-	Stage primaryStage;
+	static Stage primaryStage;
 
 	static ZoomableScrollPane scrollPane;
 
@@ -220,6 +224,7 @@ public class BasicOpsTest extends Application implements JMC {
 		primaryStage.setWidth(bounds.getWidth());
 		primaryStage.setHeight(bounds.getHeight());
 
+		Constants.pitchTable();
 		// canvas = new Pane();
 		// Canvas canvas2 = new Canvas(800, 100);
 
@@ -333,10 +338,21 @@ public class BasicOpsTest extends Application implements JMC {
 		Button deleteButton = new Button("Delete");
 		deleteButton.setOnAction(e -> {
 
-			ArrayList<MIDINoteBar> temp = midiex.getMNB();
-			for (int i = 0; i < temp.size(); i++) {
+			Alert alert = new Alert(AlertType.CONFIRMATION);
+			alert.setTitle("Delete?");
+			Optional<ButtonType> action = alert.showAndWait();
 
-				midiex.getMNB().get(i).clear();
+			if (action.get() == ButtonType.OK) {
+
+				ArrayList<MIDINoteBar> temp = midiex.getMNB();
+				for (int i = 0; i < temp.size(); i++) {
+
+					midiex.getMNB().get(i).clear();
+				}
+			}
+
+			if (action.get() == ButtonType.CANCEL) {
+				alert.close();
 			}
 
 		});
@@ -436,8 +452,9 @@ public class BasicOpsTest extends Application implements JMC {
 
 			@SuppressWarnings("unchecked")
 			private void editAction() {
-
-				Task task = new Task<Void>() {
+				ListView<String> temp = Constants.mListView;
+				ObservableList<String> oList = Constants.observableList;
+				Task<Void> task = new Task<Void>() {
 					@Override
 					public Void call() {
 
@@ -463,8 +480,7 @@ public class BasicOpsTest extends Application implements JMC {
 								}
 								label.setFont(Font.font(null, FontWeight.BOLD, 16));
 
-								FilteredList<String> filteredData = new FilteredList<>(Constants.observableList,
-										s -> true);
+								FilteredList<String> filteredData = new FilteredList<>(oList, s -> true);
 
 								TextField filterInput = new TextField();
 								filterInput.textProperty().addListener(obs -> {
@@ -475,12 +491,12 @@ public class BasicOpsTest extends Application implements JMC {
 										filteredData.setPredicate(s -> s.contains(filter.toUpperCase()));
 									}
 
-									Constants.mListView.setItems(filteredData);
+									temp.setItems(filteredData);
 								});
 
 								// create a list of items.
 
-								Constants.mListView.getSelectionModel().selectedItemProperty()
+								temp.getSelectionModel().selectedItemProperty()
 										.addListener(new ChangeListener<String>() {
 
 											public void changed(ObservableValue<? extends String> observable,
@@ -494,7 +510,7 @@ public class BasicOpsTest extends Application implements JMC {
 											}
 										});
 								Group instedit = new Group();
-								listViewPanel.getChildren().addAll(Constants.mListView, label, filterInput);
+								listViewPanel.getChildren().addAll(temp, label, filterInput);
 								instedit.getChildren().addAll(listViewPanel);
 
 								Scene dialogScene = new Scene(instedit, 400, 400);
@@ -575,6 +591,10 @@ public class BasicOpsTest extends Application implements JMC {
 					@Override
 					public void run() {
 
+						ObservableList oList = Constants.addObservableList;
+
+						ListView temp = Constants.addListView;
+
 						Stage dialog = new Stage();
 						dialog.initModality(Modality.APPLICATION_MODAL);
 						dialog.initOwner(primaryStage);
@@ -593,7 +613,7 @@ public class BasicOpsTest extends Application implements JMC {
 						}
 						label.setFont(Font.font(null, FontWeight.BOLD, 16));
 
-						FilteredList<String> filteredData = new FilteredList<>(Constants.observableList, s -> true);
+						FilteredList<String> filteredData = new FilteredList<>(oList, s -> true);
 
 						TextField filterInput = new TextField();
 						filterInput.textProperty().addListener(obs -> {
@@ -604,30 +624,34 @@ public class BasicOpsTest extends Application implements JMC {
 								filteredData.setPredicate(s -> s.contains(filter.toUpperCase()));
 							}
 
-							Constants.mListView.setItems(filteredData);
+							temp.setItems(filteredData);
 						});
 
 						// create a list of items.
 
-						Constants.mListView.getSelectionModel().selectedItemProperty()
-								.addListener(new ChangeListener<String>() {
+						temp.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
 
-									public void changed(ObservableValue<? extends String> observable, String oldValue,
-											String newValue) {
-										// change the label text value to the newly selected
-										// item.
-										label.setText(newValue);
-										Part p = new Part();
-										MIDIPane t = new MIDIPane(p);
+							public void changed(ObservableValue<? extends String> observable, String oldValue,
+									String newValue) {
+								// change the label text value to the newly selected
+								// item.
+								label.setText(newValue);
+								Part p = new Part();
+								midiex.addPart(p);
+								MIDIPane t = new MIDIPane(p);
+								toto.clean();
+								toto.addPartList(midiex.getPart());
 
-										if (t != null)
-											t.setInstrument((int) Constants.getKeyFromValue(newValue));
-										midiex.addPane(t);
-										paintNotes();
-									}
-								});
+								if (t != null)
+									t.setInstrument((int) Constants.getKeyFromValue(newValue));
+								midiex.addPane(t);
+								paintNotes();
+
+								System.out.print(toto.toString());
+							}
+						});
 						Group instedit = new Group();
-						listViewPanel.getChildren().addAll(Constants.mListView, label, filterInput);
+						listViewPanel.getChildren().addAll(temp, label, filterInput);
 						instedit.getChildren().addAll(listViewPanel);
 
 						Scene dialogScene = new Scene(instedit, 400, 400);
@@ -641,13 +665,49 @@ public class BasicOpsTest extends Application implements JMC {
 		};
 
 		executor.execute(task);
-
 	}
 
 	private void flushExecutor() {
 
 		executor.shutdown();
 		executor = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
+
+	}
+
+	public static void noteEdit(MIDINoteBar m) {
+
+		Stage dialog = new Stage();
+		dialog.initModality(Modality.APPLICATION_MODAL);
+		dialog.initOwner(primaryStage);
+
+		Group noteEdit = new Group();
+
+		VBox box = new VBox();
+		box.setSpacing(5);
+
+		Note temp = m.getNote();
+		
+		// DURATION
+		HBox duration = new HBox();
+		Label durationLabel = new Label("The Duration is: ");
+		double rhythm = temp.getRhythmValue();
+		rhythm = Math.round(rhythm * 100);
+		rhythm = rhythm / 100;
+		TextField durationTF = new TextField(rhythm + "");
+		duration.getChildren().addAll(durationLabel, durationTF);
+
+		// PITCH
+
+		HBox pitch = new HBox();
+		Label pitchLabel = new Label("The Pitch is: ");
+
+		TextField pitchTF = new TextField();
+		pitch.getChildren().addAll(pitchLabel, pitchTF);
+
+		box.getChildren().addAll(duration, pitch);
+		Scene dialogScene = new Scene(box, 400, 400);
+		dialog.setScene(dialogScene);
+		dialog.show();
 
 	}
 

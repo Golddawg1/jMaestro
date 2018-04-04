@@ -55,6 +55,7 @@ public class MIDIPane extends Pane implements JMC {
 	public MIDIPane(Part s) {
 		super();
 		myPart = s;
+
 		Pan = s.getPan();
 		MouseGestures mg = new MouseGestures();
 		mg.makeClickable(this);
@@ -69,11 +70,15 @@ public class MIDIPane extends Pane implements JMC {
 
 		if (temp == 9) {
 			partName = "Drums";
+			myPart.setTitle("Drums");
 		}
 
 		else {
 			instrument = s.getInstrument();
+
 			partName = Constants.midiTable.getOrDefault(s.getInstrument(), "Error");
+
+			myPart.setTitle(partName);
 		}
 		e = new Label(partName);
 		e.setAlignment(Pos.TOP_LEFT);
@@ -116,6 +121,7 @@ public class MIDIPane extends Pane implements JMC {
 		instrument = i;
 		myPart.setInstrument(instrument);
 		partName = Constants.midiTable.getOrDefault(i, "Error");
+		myPart.setTitle(partName);
 		e.setText(partName);
 
 	}
@@ -216,11 +222,11 @@ public class MIDIPane extends Pane implements JMC {
 					if (y >= 0 && y < 127 && x >= 0 && x < instance.getWidth()) {
 						double length = 1;
 						Note note = new Note();
-						note.setPitch((fy *-1) + 127);
+						note.setPitch((fy * -1) + 127);
 						Phrase phrase = new Phrase();
 						phrase.add(note);
-						phrase.setStartTime(fx/20);
-						MIDINoteBar n = new MIDINoteBar(fx/20, fy * -1 + 127, length, 3, note, fx/20);
+						phrase.setStartTime(fx / 20);
+						MIDINoteBar n = new MIDINoteBar(fx / 20, fy * -1 + 127, length, 3, note, fx / 20);
 						MIDINoteExtractor.midibar.makeDraggable(n);
 						n.setPane(instance);
 						instance.addNote(n);
