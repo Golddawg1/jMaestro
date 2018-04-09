@@ -34,7 +34,7 @@ public class Constants {
 	 */
 	public static Map<Integer, String> midiTable;
 
-	public static Map<Integer, String> pitchTable;
+	public static Map<String, Integer> pitchTable;
 
 	static ObservableList observableList;
 	static ListView mListView;
@@ -102,10 +102,19 @@ public class Constants {
 		}
 		return 0;
 	}
+	
+	public static String getKeyFromValuePitch(int value) {
+		for (String o : pitchTable.keySet()) {
+			if (pitchTable.get(o).equals(value)) {
+				return o;
+			}
+		}
+		return "0";
+	}
 
 	public static void pitchTable() {
 
-		pitchTable = new LinkedHashMap<Integer, String>();
+		pitchTable = new LinkedHashMap<String, Integer>();
 		String letter = "C";
 		int interval = -1;
 		int midiValue = 0;
@@ -151,16 +160,16 @@ public class Constants {
 					break;
 
 				}
-				pitchTable.put(midiValue, letter + interval);
+				pitchTable.put( letter + interval, midiValue);
 				midiValue++;
 			}
 
 			interval++;
 		}
 
-		for (int name : pitchTable.keySet()) {
+		for (String name : pitchTable.keySet()) {
 
-			int key = name;
+			String key = name;
 			String value = pitchTable.get(name).toString();
 			System.out.println(key + " " + value);
 

@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
@@ -43,6 +44,8 @@ public class MIDINoteExtractor implements JMC {
 	static MouseGestures midibar;
 	ArrayList<MIDIPane> panes = new ArrayList<MIDIPane>();
 	ArrayList<Part> allParts = new ArrayList<Part>();
+	LinkedBlockingQueue<MIDIPane> undoList;
+	
 
 	public int tempo = 90;
 
@@ -400,5 +403,4 @@ public class MIDINoteExtractor implements JMC {
 			return mp;
 		}
 	}
-
 }

@@ -6,6 +6,7 @@ import java.awt.Toolkit;
 import java.awt.geom.Rectangle2D;
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.nio.file.Path;
@@ -25,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
 
+import javax.imageio.ImageIO;
 import javax.sound.midi.InvalidMidiDataException;
 import javax.sound.midi.MetaEventListener;
 import javax.sound.midi.MetaMessage;
@@ -158,6 +160,9 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 	static Timeline barTimeLine;
 	static Timeline scrollingTimeLine;
 
+	static Label timeDisplay;
+	private static Timeline time;
+
 	File workingSongFile;
 
 	TextField tempoField;
@@ -198,12 +203,16 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 
 	static ExecutorService executor;
 
+	static ChangeManager manager;
+
 	public static void main(String[] args) {
 		launch(args);
 	}
 
 	@Override
 	public void start(Stage primaryStage) throws Exception {
+
+		manager = new ChangeManager();
 
 		primaryStage.setTitle("jMaestro");
 		executor = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
@@ -439,7 +448,50 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 			}
 		});
 
-		menuFile.getItems().addAll(importFile);
+		MenuItem saveFile = new MenuItem("Save");
+		saveFile.setOnAction(new EventHandler<ActionEvent>() {
+			public void handle(ActionEvent t) {
+
+				Task task = new Task<Void>() {
+					@Override
+					public Void call() {
+						Platform.runLater(new Runnable() {
+							@Override
+							public void run() {
+
+								saveAction();
+
+							}
+
+							private void saveAction() {
+
+								FileChooser fileChooser = new FileChooser();
+
+								FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter(
+										"MIDI files (*.mid)", "*.mid");
+								fileChooser.getExtensionFilters().add(extFilter);
+
+								File file = fileChooser.showSaveDialog(primaryStage);
+
+								fileChooser.setTitle("Save Image");
+
+								if (file != null) {
+									Write.midi(toto, file.getAbsolutePath());
+								}
+							
+							}
+						});
+
+						return null;
+					}
+				};
+
+				executor.execute(task);
+
+			}
+		});
+
+		menuFile.getItems().addAll(importFile, saveFile);
 
 		// --- Menu Edit
 		Menu menuEdit = new Menu("Edit");
@@ -526,14 +578,26 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 				executor.execute(task);
 
 			}
+
 		});
 
-		menuEdit.getItems().addAll(edit);
+		MenuItem undo = new MenuItem("undo");
+		edit.setOnAction(new EventHandler<ActionEvent>() {
+			public void handle(ActionEvent t) {
+
+				manager.undo();
+			}
+
+		});
+
+		menuEdit.getItems().addAll(edit, undo);
 
 		menuBar.getMenus().addAll(menuFile, menuEdit);
 		bp.setTop(menuBar);
 
-		HBox menu = new HBox(playButton, resetButton, tempoLabel, tempoField);
+		timeDisplay = new Label("0");
+
+		HBox menu = new HBox(playButton, resetButton, tempoLabel, tempoField, timeDisplay);
 		VBox holder = new VBox(menuBar, menu);
 		bp.setTop(holder);
 		Scene scene = new Scene(bp, width, height);
@@ -565,9 +629,11 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 							// System.out.println("Total time is: " + totalTime);
 							timeLine();
 							scrollingBarLock();
+							timeDisplay();
 
 							barTimeLine.play();
 							scrollingTimeLine.play();
+							time.play();
 						}
 					}
 				});
@@ -677,7 +743,7 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 	public static void noteEdit(MIDINoteBar m) {
 
 		Stage dialog = new Stage();
-		dialog.initModality(Modality.APPLICATION_MODAL);
+		dialog.initModality(Modality.NONE);
 		dialog.initOwner(primaryStage);
 
 		Group noteEdit = new Group();
@@ -686,7 +752,7 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 		box.setSpacing(5);
 
 		Note temp = m.getNote();
-		
+
 		// DURATION
 		HBox duration = new HBox();
 		Label durationLabel = new Label("The Duration is: ");
@@ -694,6 +760,16 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 		rhythm = Math.round(rhythm * 100);
 		rhythm = rhythm / 100;
 		TextField durationTF = new TextField(rhythm + "");
+		durationTF.textProperty().addListener((observable, oldValue, newValue) -> {
+			double d;
+			try {
+				d = Double.parseDouble(newValue);
+				m.setDuration(d);
+			} catch (NullPointerException | NumberFormatException ex) {
+				// Not valid double
+			}
+
+		});
 		duration.getChildren().addAll(durationLabel, durationTF);
 
 		// PITCH
@@ -701,7 +777,16 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 		HBox pitch = new HBox();
 		Label pitchLabel = new Label("The Pitch is: ");
 
-		TextField pitchTF = new TextField();
+		TextField pitchTF = new TextField(Constants.getKeyFromValuePitch(m.getNote().getPitch()));
+
+		pitchTF.textProperty().addListener((observable, oldValue, newValue) -> {
+
+			newValue = newValue.toUpperCase();
+			if (Constants.pitchTable.containsKey(newValue)) {
+				m.setPitch(Constants.pitchTable.get(newValue));
+			}
+
+		});
 		pitch.getChildren().addAll(pitchLabel, pitchTF);
 
 		box.getChildren().addAll(duration, pitch);
@@ -795,6 +880,22 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 
 				new KeyFrame(songTime, new KeyValue(rect.translateXProperty(), content.getWidth() - 5),
 						new KeyValue(rect.translateYProperty(), 0)));
+
+		System.out.println(totalTime / 1000);
+
+	}
+
+	public static void timeDisplay() {
+		Duration songTime = Duration.millis((totalTime - currentTime) / 1000);
+
+		int seconds = (int) ((currentTime / 1000000) % 60);
+
+		long minutes = (long) (((currentTime - seconds) / 1000000) / 60);
+		time = new Timeline(
+				new KeyFrame(Duration.millis(0),
+						new KeyValue(timeDisplay.textProperty(), minutes + ":" + seconds + "")),
+
+				new KeyFrame(songTime, new KeyValue(timeDisplay.textProperty(), totalTime + "")));
 
 		System.out.println(totalTime / 1000);
 
