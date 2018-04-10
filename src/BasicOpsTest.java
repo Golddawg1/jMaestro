@@ -1,3 +1,4 @@
+
 import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.Graphics;
@@ -185,11 +186,12 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 
 	static ZoomableScrollPane scrollPane;
 
-	int den, num;
+	static int den;
+	static int num;
 
-	MeasurePane measures;
+	static MeasurePane measures;
 
-	VBox HUDcontent;
+	static VBox HUDcontent;
 
 	static double currentTime;
 
@@ -423,6 +425,33 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 		// --- Menu File
 		Menu menuFile = new Menu("File");
 
+		MenuItem newFile = new MenuItem("New File");
+		newFile.setOnAction(new EventHandler<ActionEvent>() {
+			public void handle(ActionEvent t) {
+
+				Task task = new Task<Void>() {
+					@Override
+					public Void call() {
+						Platform.runLater(new Runnable() {
+							@Override
+							public void run() {
+								toto = new Score();
+								String path = System.getProperty("user.dir");
+								File file = new File(path + "/Untitled.mid");
+								importAction(file.toPath());
+
+							}
+						});
+
+						return null;
+					}
+				};
+
+				executor.execute(task);
+
+			}
+		});
+
 		MenuItem importFile = new MenuItem("Import");
 		importFile.setOnAction(new EventHandler<ActionEvent>() {
 			public void handle(ActionEvent t) {
@@ -434,7 +463,66 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 							@Override
 							public void run() {
 
-								importAction();
+								FileChooser fileChooser = new FileChooser();
+
+								FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter(
+										"MIDI files (*.mid)", "*.mid");
+								fileChooser.getExtensionFilters().add(extFilter);
+								Path s = null;
+								File file = fileChooser.showOpenDialog(primaryStage);
+								if (file != null) {
+									s = file.toPath();
+								}
+								importAction(s);
+
+							}
+						});
+
+						return null;
+					}
+				};
+
+				executor.execute(task);
+
+			}
+		});
+
+		MenuItem soundFont = new MenuItem("Import");
+		soundFont.setOnAction(new EventHandler<ActionEvent>() {
+			public void handle(ActionEvent t) {
+
+				Task task = new Task<Void>() {
+					@Override
+					public Void call() {
+						Platform.runLater(new Runnable() {
+							@Override
+							public void run() {
+
+								FileChooser fileChooser = new FileChooser();
+
+								FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter(
+										"soundfont files (*.sf2)", "*.sf2");
+								fileChooser.getExtensionFilters().add(extFilter);
+								Path s = null;
+								File file = fileChooser.showOpenDialog(primaryStage);
+								if (file != null) {
+									s = file.toPath();
+								}
+								soundFont(s);
+
+							}
+
+							private void soundFont(Path s) {
+								synth.unloadAllInstruments(synth.getDefaultSoundbank());
+								try {
+									synth.loadAllInstruments(MidiSystem.getSoundbank(s.toFile()));
+								} catch (InvalidMidiDataException e) {
+									// TODO Auto-generated catch block
+									e.printStackTrace();
+								} catch (IOException e) {
+									// TODO Auto-generated catch block
+									e.printStackTrace();
+								}
 
 							}
 						});
@@ -478,7 +566,7 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 								if (file != null) {
 									Write.midi(toto, file.getAbsolutePath());
 								}
-							
+
 							}
 						});
 
@@ -491,7 +579,7 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 			}
 		});
 
-		menuFile.getItems().addAll(importFile, saveFile);
+		menuFile.getItems().addAll(newFile, importFile, saveFile, soundFont);
 
 		// --- Menu Edit
 		Menu menuEdit = new Menu("Edit");
@@ -581,16 +669,18 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 
 		});
 
-		MenuItem undo = new MenuItem("undo");
-		edit.setOnAction(new EventHandler<ActionEvent>() {
+		MenuItem measureEdit = new MenuItem("Measure Edit");
+		measureEdit.setOnAction(new EventHandler<ActionEvent>() {
 			public void handle(ActionEvent t) {
 
-				manager.undo();
+				measures.setMeasures(60);
+				measures.populate();
+
 			}
 
 		});
 
-		menuEdit.getItems().addAll(edit, undo);
+		menuEdit.getItems().addAll(edit, measureEdit);
 
 		menuBar.getMenus().addAll(menuFile, menuEdit);
 		bp.setTop(menuBar);
@@ -622,6 +712,15 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 					@Override
 					public void run() {
 						if (isPlaying) {
+
+							double numMeasures = ((totalTime / 1000000) / 60 * midiex.tempo) / num;
+							measures = new MeasurePane(num, den, numMeasures);
+							System.out.println(numMeasures +"NUMBER OF MEASURES");
+
+							//content.setPrefWidth(content.getChildren().get(0).getLayoutBounds().getWidth());
+
+							HUDcontent.getChildren().clear();
+							HUDcontent.getChildren().addAll(measures, content);
 
 							sequencer.setMicrosecondPosition((long) currentTime);
 							sequencer.start();
@@ -878,7 +977,7 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 				// new KeyValue(rect.translateXProperty(), (content.getWidth() / 2) - 1),
 				// new KeyValue(rect.translateYProperty(), 0)),
 
-				new KeyFrame(songTime, new KeyValue(rect.translateXProperty(), content.getWidth() - 5),
+				new KeyFrame(songTime, new KeyValue(rect.translateXProperty(), content.getWidth()-1),
 						new KeyValue(rect.translateYProperty(), 0)));
 
 		System.out.println(totalTime / 1000);
@@ -931,7 +1030,7 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 	}
 
 	// This handles everything to import a song
-	public void importAction() {
+	public void importAction(Path s) {
 
 		flushExecutor();
 		currentRectX = 0;
@@ -940,18 +1039,8 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 		// bp.setStyle("-fx-background-color: #F0591E;");
 
 		midiex = new MIDINoteExtractor();
-		Path s = null;
 
-		FileChooser fileChooser = new FileChooser();
-
-		FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("MIDI files (*.mid)", "*.mid");
-		fileChooser.getExtensionFilters().add(extFilter);
-
-		File file = fileChooser.showOpenDialog(primaryStage);
-		if (file != null) {
-			s = file.toPath();
-		}
-		workingSongFile = file;
+		workingSongFile = s.toFile();
 		s = workingSongFile.toPath();
 
 		try {
@@ -1000,9 +1089,14 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 
 		innerBP.setCenter(root);
 
-		measures.setMaxWidth(content.getChildren().get(0).getTranslateX());
+		// measures.setMaxWidth(content.getChildren().get(0).getTranslateX());
 		HUDcontent.getChildren().clear();
 		HUDcontent.getChildren().addAll(measures, content);
+
+		// panes.get(0).prefWidthProperty().bind(measures.widthProperty());
+
+		System.out.println(measures.widthProperty() + "WIDTH PROPERTY");
+		// midiex.extendPanes();
 
 	}
 

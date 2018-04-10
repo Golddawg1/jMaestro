@@ -7,19 +7,17 @@ import javafx.scene.shape.Rectangle;
 import jm.*;
 import jm.music.data.*;
 
-public class MIDINoteBar extends Rectangle implements JMC, Changeable {
+public class MIDINoteBar extends Rectangle implements JMC {
 
 	Note n;
 	double startTime;
 	MIDIPane pane;
-	
-
 
 	MIDINoteBar(double x, double y, double width, double height, Note note, double time) {
 		super();
 
 		n = note;
-	
+
 		startTime = time;
 		this.setX(x * 20);
 		this.setY(y * -1 + 127);
@@ -80,7 +78,7 @@ public class MIDINoteBar extends Rectangle implements JMC, Changeable {
 	}
 
 	public void setNote(Note newNote) {
-	
+
 		n = newNote;
 		this.setY(newNote.getPitch() * -1 + 127);
 		this.setWidth(newNote.getRhythmValue() * 20 - .5);
@@ -88,7 +86,7 @@ public class MIDINoteBar extends Rectangle implements JMC, Changeable {
 	}
 
 	public void setNoteFromString(String s) {
-	
+
 		Note newNote = new Note();
 		newNote.setPitch(Constants.pitchTable.get(s));
 		n = newNote;
@@ -98,14 +96,14 @@ public class MIDINoteBar extends Rectangle implements JMC, Changeable {
 	}
 
 	public void setDuration(Double s) {
-		
+
 		n.setDuration(s);
 		this.setWidth(n.getDuration() * 20 - .5);
 
 	}
 
 	public void setPitch(int newNote) {
-	
+
 		int temp = newNote * -1 + 127;
 
 		n.setPitch(newNote);
@@ -114,7 +112,7 @@ public class MIDINoteBar extends Rectangle implements JMC, Changeable {
 	}
 
 	public void setStartfromX(double newX) {
-	
+
 		this.startTime = newX / 20;
 		this.setX(newX);
 		n.getMyPhrase().setStartTime(startTime);
@@ -122,7 +120,7 @@ public class MIDINoteBar extends Rectangle implements JMC, Changeable {
 	}
 
 	public void setStartTime(double newTime) {
-	
+
 		this.startTime = newTime;
 		n.getMyPhrase().setStartTime(newTime);
 		this.setX(newTime * 20);
@@ -147,18 +145,6 @@ public class MIDINoteBar extends Rectangle implements JMC, Changeable {
 		startTime = 0;
 		this.setWidth(0);
 		this.setHeight(0);
-
-	}
-
-	@Override
-	public void undo() {
-		
-
-	}
-
-	@Override
-	public void redo() {
-		// TODO Auto-generated method stub
 
 	}
 

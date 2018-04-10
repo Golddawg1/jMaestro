@@ -64,7 +64,7 @@ public class MIDIPane extends Pane implements JMC {
 		this.setMaxHeight(127);
 		this.setPrefHeight(127);
 		this.setBackground(new Background(new BackgroundFill(Color.WHITESMOKE, CornerRadii.EMPTY, Insets.EMPTY)));
-
+			
 		// this.setOnKeyPressed(e -> pressedKeys.add(e.getCode()));
 		// this.setOnKeyReleased(e -> pressedKeys.remove(e.getCode()));
 
@@ -134,16 +134,17 @@ public class MIDIPane extends Pane implements JMC {
 				Platform.runLater(new Runnable() {
 					@Override
 					public void run() {
+						if (instance != null) {
+							if (sel == false) {
+								instance.setBackground(new Background(
+										new BackgroundFill(Color.WHITESMOKE, CornerRadii.EMPTY, Insets.EMPTY)));
+							}
 
-						if (sel == false) {
-							instance.setBackground(new Background(
-									new BackgroundFill(Color.WHITESMOKE, CornerRadii.EMPTY, Insets.EMPTY)));
-						}
+							else {
+								instance.setBackground(new Background(
+										new BackgroundFill(Color.LIGHTCYAN, CornerRadii.EMPTY, Insets.EMPTY)));
 
-						else {
-							instance.setBackground(new Background(
-									new BackgroundFill(Color.LIGHTCYAN, CornerRadii.EMPTY, Insets.EMPTY)));
-
+							}
 						}
 					}
 				});

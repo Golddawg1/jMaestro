@@ -45,11 +45,10 @@ public class MIDINoteExtractor implements JMC {
 	ArrayList<MIDIPane> panes = new ArrayList<MIDIPane>();
 	ArrayList<Part> allParts = new ArrayList<Part>();
 	LinkedBlockingQueue<MIDIPane> undoList;
-	
 
 	public int tempo = 90;
 
-	ArrayList<MIDINoteBar> mnbs = new ArrayList<MIDINoteBar>();
+	static ArrayList<MIDINoteBar> mnbs = new ArrayList<MIDINoteBar>();
 
 	public MIDINoteExtractor() {
 		midibar = new MouseGestures();
@@ -140,6 +139,7 @@ public class MIDINoteExtractor implements JMC {
 		// for(int i =0; i < p.getNoteArray().length; i++)
 
 		pane = new MIDIPane(part);
+		part.empty();
 		pane.setMaxHeight(127);
 		pane.setPrefHeight(127);
 		pane.setBackground(new Background(new BackgroundFill(Color.WHITESMOKE, CornerRadii.EMPTY, Insets.EMPTY)));
@@ -170,8 +170,8 @@ public class MIDINoteExtractor implements JMC {
 				Note tempNote = new Note(nt.getPitch(), nt.getRhythmValue());
 
 				double rhythm = nt.getRhythmValue();
-				rhythm = Math.round(rhythm * 100);
-				rhythm = rhythm / 100;
+				rhythm = Math.round(rhythm * 10000);
+				rhythm = rhythm / 10000;
 
 				MIDINoteBar n = new MIDINoteBar(timeList.get(q), nt.getPitch(), rhythm, 3, tempNote, timeList.get(q));
 				midibar.makeDraggable(n);
@@ -179,6 +179,7 @@ public class MIDINoteExtractor implements JMC {
 				part.addNote(n.getNote(), n.getStartTime());
 				notes.add(n);
 
+				System.out.println("IN CREATE NOTE");
 			}
 		}
 
@@ -300,15 +301,13 @@ public class MIDINoteExtractor implements JMC {
 									}
 								}
 
-								else if (t.getButton() == MouseButton.SECONDARY) {
-									for (int i = 0; i < mnbs.size(); i++) {
-										mnbs.get(i).setFill(Color.BLACK);
-									}
-									mnbs.clear();
+								if (t.getButton() == MouseButton.SECONDARY) {
+									unselectMNBS();
 
 								}
 
 							}
+
 						});
 
 						return null;
@@ -325,58 +324,69 @@ public class MIDINoteExtractor implements JMC {
 
 			@Override
 			public void handle(MouseEvent t) {
+				if (t.isShiftDown()) {
+					Task task = new Task<Void>() {
+						@Override
+						public Void call() {
 
-				Task task = new Task<Void>() {
-					@Override
-					public Void call() {
+							Platform.runLater(new Runnable() {
+								@Override
+								public void run() {
 
-						Platform.runLater(new Runnable() {
-							@Override
-							public void run() {
+									double offsetX = t.getSceneX() - orgSceneX;
+									double offsetY = t.getSceneY() - orgSceneY;
 
-								double offsetX = t.getSceneX() - orgSceneX;
-								double offsetY = t.getSceneY() - orgSceneY;
+									if (t.getSource() instanceof MIDINoteBar) {
 
-								double newTranslateX = orgTranslateX + offsetX;
-								double newTranslateY = orgTranslateY + offsetY;
+										if (mnbs.size() > 0) {
+											MIDINoteBar p = mnbs.get(0);
 
-								if (t.getSource() instanceof MIDINoteBar) {
+											if (mnbs.get(0).pane == BasicOpsTest.myCurrentMidiPane) {
 
-									if (mnbs.size() > 0) {
-										MIDINoteBar p = mnbs.get(0);
+												double x = p.getPane().getTranslateX();
+												double y = p.getPane().getTranslateY();
 
-										double x = p.getPane().getTranslateX();
-										double y = p.getPane().getTranslateY();
+												double newX = (int) (t.getX() - x);
+												int newY = (int) (t.getY() - y);
+												newY = newY * -1 + 127;
 
-										double newX = (int) (t.getX() - x);
-										int newY = (int) (t.getY() - y);
+												if (newY >= 0 && newY < 127) {
+													p.setX(newX);
+													p.setY(newY);
 
-										if (newY >= 0 && newY < 127 && newX >= 0 && newX < p.getPane().getWidth()) {
-											p.setX(newX);
-											p.setY(newY);
+													p.setPitch(newY);
 
-											p.setPitch(newY);
+													p.setStartfromX(newX);
+												}
+												System.out.println(p.noteInfo());
+											}
 
-											p.setStartfromX(newX);
+										} else {
+
+											Node p = ((Node) (t.getSource()));
 										}
-										System.out.println(p.noteInfo());
 									}
-
-								} else {
-
-									Node p = ((Node) (t.getSource()));
 								}
-							}
-						});
+							});
 
-						return null;
-					}
-				};
+							return null;
+						}
+					};
 
-				BasicOpsTest.executor.execute(task);
+					BasicOpsTest.executor.execute(task);
 
+				}
 			}
 		};
+
+	}
+
+	public static void unselectMNBS() {
+
+		for (int i = 0; i < mnbs.size(); i++) {
+			mnbs.get(i).setFill(Color.BLACK);
+		}
+		mnbs.clear();
 
 	}
 
@@ -403,4 +413,5 @@ public class MIDINoteExtractor implements JMC {
 			return mp;
 		}
 	}
+
 }

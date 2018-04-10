@@ -61,7 +61,6 @@ public class MeasurePane extends Pane implements JMC {
 
 		mg.makeClickable(this);
 		populate();
-	
 
 		System.out.println(num + "/" + den);
 	}
@@ -80,7 +79,7 @@ public class MeasurePane extends Pane implements JMC {
 					public void run() {
 
 						double currentX = 0;
-						for (int i = 1; i <= measures + 1; i++) {
+						for (int i = 1; i <= (int)measures; i++) {
 							Rectangle l = new Rectangle(currentX, 0, 2, 10);
 							l.setFill(Color.RED);
 							Text t = new Text();
