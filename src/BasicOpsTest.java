@@ -112,7 +112,6 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 	static volatile Timeline barTimeLine;
 	static volatile Timeline scrollingTimeLine;
 
-	static Label timeDisplay;
 	private static volatile Timeline time;
 
 	File workingSongFile;
@@ -366,10 +365,9 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 
 		executor.execute(task);
 
-		Label ol = new Label("Outer Layer");
 		VBox editContainer = new VBox();
 		editContainer.getChildren().addAll(addButton, deleteButton);
-		bp = new BorderPane(innerBP, null, editContainer, null, ol);
+		bp = new BorderPane(innerBP, null, editContainer, null, null);
 
 		MenuBar menuBar = new MenuBar();
 
@@ -623,30 +621,30 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 		MenuItem measureEdit = new MenuItem("Delete Track");
 		measureEdit.setOnAction(new EventHandler<ActionEvent>() {
 			public void handle(ActionEvent t) {
+				if (myCurrentMidiPane != null) {
+					myCurrentMidiPane.myPart.empty();
+					toto.removePart(myCurrentMidiPane.myPart);
+					Task task = new Task<Void>() {
+						@Override
+						public Void call() {
 
-				myCurrentMidiPane.myPart.empty();
-				toto.removePart(myCurrentMidiPane.myPart);
-				Task task = new Task<Void>() {
-					@Override
-					public Void call() {
+							Platform.runLater(new Runnable() {
+								@Override
+								public void run() {
+									panes.remove(myCurrentMidiPane);
+									content.getChildren().clear();
+									paintNotes();
+								}
+							});
 
-						Platform.runLater(new Runnable() {
-							@Override
-							public void run() {
-								panes.remove(myCurrentMidiPane);
-								content.getChildren().clear();
-								paintNotes();
-							}
-						});
+							return null;
+						}
+					};
 
-						return null;
-					}
-				};
+					executor.execute(task);
 
-				executor.execute(task);
-
+				}
 			}
-
 		});
 
 		menuEdit.getItems().addAll(edit, measureEdit);
@@ -654,9 +652,7 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 		menuBar.getMenus().addAll(menuFile, menuEdit);
 		bp.setTop(menuBar);
 
-		timeDisplay = new Label("0");
-
-		HBox menu = new HBox(playButton, resetButton, tempoLabel, tempoField, timeDisplay);
+		HBox menu = new HBox(playButton, resetButton, tempoLabel, tempoField);
 		VBox holder = new VBox(menuBar, menu);
 		bp.setTop(holder);
 		Scene scene = new Scene(bp, width, height);
@@ -697,11 +693,10 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 							// System.out.println("Total time is: " + totalTime);
 							timeLine();
 							scrollingBarLock();
-							timeDisplay();
 
 							barTimeLine.play();
 							scrollingTimeLine.play();
-							time.play();
+
 						}
 					}
 				});
@@ -953,22 +948,6 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 
 				new KeyFrame(songTime, new KeyValue(rect.translateXProperty(), content.getWidth() - 1),
 						new KeyValue(rect.translateYProperty(), 0)));
-
-		System.out.println(totalTime / 1000);
-
-	}
-
-	public static void timeDisplay() {
-		Duration songTime = Duration.millis((totalTime - currentTime) / 1000);
-
-		int seconds = (int) ((currentTime / 1000000) % 60);
-
-		long minutes = (long) (((currentTime - seconds) / 1000000) / 60);
-		time = new Timeline(
-				new KeyFrame(Duration.millis(0),
-						new KeyValue(timeDisplay.textProperty(), minutes + ":" + seconds + "")),
-
-				new KeyFrame(songTime, new KeyValue(timeDisplay.textProperty(), totalTime + "")));
 
 		System.out.println(totalTime / 1000);
 

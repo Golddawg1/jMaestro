@@ -135,17 +135,17 @@ public class MIDIPane extends Pane implements JMC {
 				Platform.runLater(new Runnable() {
 					@Override
 					public void run() {
-						if (instance != null) {
-							if (sel == false) {
-								instance.setBackground(new Background(
-										new BackgroundFill(Color.WHITESMOKE, CornerRadii.EMPTY, Insets.EMPTY)));
-							}
 
-							else {
-								instance.setBackground(new Background(
-										new BackgroundFill(Color.LIGHTCYAN, CornerRadii.EMPTY, Insets.EMPTY)));
+						if (sel == false) {
+							//BasicOpsTest.myCurrentMidiPane = null;
+							instance.setBackground(new Background(
+									new BackgroundFill(Color.WHITESMOKE, CornerRadii.EMPTY, Insets.EMPTY)));
+						}
 
-							}
+						else {
+							instance.setBackground(new Background(
+									new BackgroundFill(Color.LIGHTCYAN, CornerRadii.EMPTY, Insets.EMPTY)));
+
 						}
 					}
 				});
@@ -215,11 +215,6 @@ public class MIDIPane extends Pane implements JMC {
 
 					}
 
-					// Node p = ((Node) (t.getSource()));
-
-					// orgTranslateX = p.getTranslateX();
-					// orgTranslateY = p.getTranslateY();
-
 				}
 
 				else if (t.getButton() == MouseButton.PRIMARY && t.isShortcutDown()) {
@@ -277,18 +272,7 @@ public class MIDIPane extends Pane implements JMC {
 				double offsetX = t.getSceneX() - orgSceneX;
 				double offsetY = t.getSceneY() - orgSceneY;
 
-				// double newTranslateX = orgTranslateX + offsetX;
-				// double newTranslateY = orgTranslateY + offsetY;
-
 				if (t.getSource() instanceof MIDINoteBar) {
-
-					// MIDINoteBar p = ((MIDINoteBar) (t.getSource()));
-					//
-					// currentNote = p;
-					//
-					// // p.setX(newTranslateX);
-					// // p.setY(newTranslateY);
-					// System.out.println(p.noteInfo());
 
 				} else {
 
