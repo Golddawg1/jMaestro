@@ -153,7 +153,7 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 
 	static MIDIPane myCurrentMidiPane;
 
-	static ExecutorService executor;
+	volatile static ExecutorService executor;
 
 	boolean first = false;
 
@@ -602,7 +602,7 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 								listViewPanel.getChildren().addAll(temp, label, filterInput);
 								instedit.getChildren().addAll(listViewPanel);
 
-								Scene dialogScene = new Scene(instedit, 400, 400);
+								Scene dialogScene = new Scene(instedit, 800, 400);
 								dialog.setScene(dialogScene);
 								dialog.show();
 							}
@@ -785,7 +785,7 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 						listViewPanel.getChildren().addAll(temp, label, filterInput);
 						instedit.getChildren().addAll(listViewPanel);
 
-						Scene dialogScene = new Scene(instedit, 400, 400);
+						Scene dialogScene = new Scene(instedit, 800, 400);
 						dialog.setScene(dialogScene);
 						dialog.show();
 
