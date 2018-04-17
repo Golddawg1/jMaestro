@@ -179,7 +179,6 @@ public class MIDINoteExtractor implements JMC {
 				part.addNote(n.getNote(), n.getStartTime());
 				notes.add(n);
 
-				System.out.println("IN CREATE NOTE");
 			}
 		}
 

@@ -155,7 +155,7 @@ public class Constants {
 				case (10):
 					letter = "A#";
 					break;
-				case (12):
+				case (11):
 					letter = "B";
 					break;
 

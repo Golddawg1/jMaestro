@@ -64,7 +64,7 @@ public class MIDIPane extends Pane implements JMC {
 		this.setMaxHeight(127);
 		this.setPrefHeight(127);
 		this.setBackground(new Background(new BackgroundFill(Color.WHITESMOKE, CornerRadii.EMPTY, Insets.EMPTY)));
-			
+
 		// this.setOnKeyPressed(e -> pressedKeys.add(e.getCode()));
 		// this.setOnKeyReleased(e -> pressedKeys.remove(e.getCode()));
 
@@ -128,6 +128,7 @@ public class MIDIPane extends Pane implements JMC {
 
 	public void setSelected(boolean sel) {
 
+		selected = sel;
 		Task task = new Task<Void>() {
 			@Override
 			public Void call() {
@@ -201,14 +202,24 @@ public class MIDIPane extends Pane implements JMC {
 
 						BasicOpsTest.myCurrentMidiPane.setSelected(true);
 
-					} else {
+					}
 
-						// Node p = ((Node) (t.getSource()));
+				} else if (t.getButton() == MouseButton.SECONDARY && t.isShiftDown()) {
+					orgSceneX = t.getSceneX();
+					orgSceneY = t.getSceneY();
 
-						// orgTranslateX = p.getTranslateX();
-						// orgTranslateY = p.getTranslateY();
+					if (t.getSource() instanceof MIDIPane) {
+
+						if (BasicOpsTest.myCurrentMidiPane != null)
+							BasicOpsTest.myCurrentMidiPane.setSelected(false);
 
 					}
+
+					// Node p = ((Node) (t.getSource()));
+
+					// orgTranslateX = p.getTranslateX();
+					// orgTranslateY = p.getTranslateY();
+
 				}
 
 				else if (t.getButton() == MouseButton.PRIMARY && t.isShortcutDown()) {

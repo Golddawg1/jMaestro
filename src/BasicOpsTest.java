@@ -8,125 +8,76 @@ import java.awt.geom.Rectangle2D;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.Vector;
+
 import java.util.concurrent.Callable;
-import java.util.concurrent.Executor;
+
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
-import java.util.function.UnaryOperator;
-import java.util.regex.Pattern;
 
-import javax.imageio.ImageIO;
 import javax.sound.midi.InvalidMidiDataException;
-import javax.sound.midi.MetaEventListener;
-import javax.sound.midi.MetaMessage;
+
 import javax.sound.midi.MidiSystem;
 import javax.sound.midi.MidiUnavailableException;
 import javax.sound.midi.Sequence;
 import javax.sound.midi.Sequencer;
 import javax.sound.midi.Soundbank;
 import javax.sound.midi.Synthesizer;
-import javax.swing.JFileChooser;
-import javax.swing.JOptionPane;
-import javax.swing.JProgressBar;
-import javax.swing.SwingUtilities;
 
-import javax.swing.filechooser.FileNameExtensionFilter;
-
-import javafx.animation.Animation;
-import javafx.animation.AnimationTimer;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
-import javafx.animation.Transition;
+
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.beans.binding.DoubleBinding;
-import javafx.beans.property.DoubleProperty;
-import javafx.beans.property.SimpleDoubleProperty;
+
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
-import javafx.beans.value.WritableValue;
-import javafx.collections.FXCollections;
+
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.concurrent.Task;
 import javafx.event.EventHandler;
-import javafx.fxml.FXMLLoader;
-import javafx.geometry.Bounds;
-import javafx.geometry.Insets;
+
 import javafx.geometry.Pos;
 import javafx.scene.Group;
-import javafx.scene.Node;
+
 import javafx.scene.Scene;
-import javafx.scene.SnapshotParameters;
+
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 
-import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
-import javafx.scene.control.TextFormatter;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
-import javafx.scene.shape.ArcType;
-import javafx.scene.shape.Line;
+
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
-import javafx.stage.StageStyle;
 import javafx.stage.WindowEvent;
 import javafx.util.Duration;
 import jm.JMC;
 import jm.constants.Pitches;
 import jm.music.data.*;
-import jm.music.*;
-import jm.util.*;
-import jm.gui.show.*;
 
-import java.util.AbstractMap.SimpleEntry;
-import java.util.Map.Entry;
+import jm.util.*;
+
 import java.util.Optional;
 
-import javafx.application.Application;
 import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.Scene;
+
 import javafx.scene.control.*;
 import javafx.scene.control.Alert.AlertType;
-import javafx.scene.effect.DropShadow;
-import javafx.scene.effect.Effect;
-import javafx.scene.effect.Glow;
-import javafx.scene.effect.SepiaTone;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
-import javafx.scene.image.WritableImage;
-import javafx.scene.layout.VBox;
 
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
-import javafx.scene.text.TextAlignment;
-
-import org.reactfx.EventStream;
-import org.reactfx.EventStreams;
 
 import java.util.concurrent.*;
 
@@ -148,7 +99,7 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 
 	static GridPane content;
 
-	ArrayList<Pane> paneList = new ArrayList();
+	ArrayList<Pane> paneList = new ArrayList<Pane>();
 
 	static MIDINoteExtractor midiex;
 
@@ -158,11 +109,11 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 
 	static Rectangle rect;
 
-	static Timeline barTimeLine;
-	static Timeline scrollingTimeLine;
+	static volatile Timeline barTimeLine;
+	static volatile Timeline scrollingTimeLine;
 
 	static Label timeDisplay;
-	private static Timeline time;
+	private static volatile Timeline time;
 
 	File workingSongFile;
 
@@ -205,7 +156,7 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 
 	static ExecutorService executor;
 
-	static ChangeManager manager;
+	boolean first = false;
 
 	public static void main(String[] args) {
 		launch(args);
@@ -213,8 +164,6 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 
 	@Override
 	public void start(Stage primaryStage) throws Exception {
-
-		manager = new ChangeManager();
 
 		primaryStage.setTitle("jMaestro");
 		executor = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
@@ -330,7 +279,7 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 
 		});
 
-		Button addButton = new Button("+");
+		Button addButton = new Button("Add Track");
 		addButton.setOnAction(e -> {
 
 			addTrack();
@@ -346,7 +295,7 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 
 		});
 
-		Button deleteButton = new Button("Delete");
+		Button deleteButton = new Button("Delete Notes");
 		deleteButton.setOnAction(e -> {
 
 			Alert alert = new Alert(AlertType.CONFIRMATION);
@@ -381,7 +330,7 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 
 		tempoField = new TextField("128");
 		tempoLabel = new Label("Tempo:");
-		innerBP = new BorderPane(root, null, deleteButton, null, null);
+		innerBP = new BorderPane(root, null, null, null, null);
 
 		tempoField.textProperty().addListener(new ChangeListener<String>() {
 
@@ -418,7 +367,9 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 		executor.execute(task);
 
 		Label ol = new Label("Outer Layer");
-		bp = new BorderPane(innerBP, null, addButton, null, ol);
+		VBox editContainer = new VBox();
+		editContainer.getChildren().addAll(addButton, deleteButton);
+		bp = new BorderPane(innerBP, null, editContainer, null, ol);
 
 		MenuBar menuBar = new MenuBar();
 
@@ -487,7 +438,7 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 			}
 		});
 
-		MenuItem soundFont = new MenuItem("Import");
+		MenuItem soundFont = new MenuItem("Use Soundfont");
 		soundFont.setOnAction(new EventHandler<ActionEvent>() {
 			public void handle(ActionEvent t) {
 
@@ -669,12 +620,30 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 
 		});
 
-		MenuItem measureEdit = new MenuItem("Measure Edit");
+		MenuItem measureEdit = new MenuItem("Delete Track");
 		measureEdit.setOnAction(new EventHandler<ActionEvent>() {
 			public void handle(ActionEvent t) {
 
-				measures.setMeasures(60);
-				measures.populate();
+				myCurrentMidiPane.myPart.empty();
+				toto.removePart(myCurrentMidiPane.myPart);
+				Task task = new Task<Void>() {
+					@Override
+					public Void call() {
+
+						Platform.runLater(new Runnable() {
+							@Override
+							public void run() {
+								panes.remove(myCurrentMidiPane);
+								content.getChildren().clear();
+								paintNotes();
+							}
+						});
+
+						return null;
+					}
+				};
+
+				executor.execute(task);
 
 			}
 
@@ -715,9 +684,9 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 
 							double numMeasures = ((totalTime / 1000000) / 60 * midiex.tempo) / num;
 							measures = new MeasurePane(num, den, numMeasures);
-							System.out.println(numMeasures +"NUMBER OF MEASURES");
+							System.out.println(numMeasures + "NUMBER OF MEASURES");
 
-							//content.setPrefWidth(content.getChildren().get(0).getLayoutBounds().getWidth());
+							// content.setPrefWidth(content.getChildren().get(0).getLayoutBounds().getWidth());
 
 							HUDcontent.getChildren().clear();
 							HUDcontent.getChildren().addAll(measures, content);
@@ -752,6 +721,7 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 			public Void call() {
 
 				Platform.runLater(new Runnable() {
+
 					@SuppressWarnings("unchecked")
 					@Override
 					public void run() {
@@ -793,28 +763,29 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 						});
 
 						// create a list of items.
+						if (first == false) {
+							temp.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
 
-						temp.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
+								public void changed(ObservableValue<? extends String> observable, String oldValue,
+										String newValue) {
+									// change the label text value to the newly selected
+									// item.
+									label.setText(newValue);
+									Part p = new Part();
+									midiex.addPart(p);
+									MIDIPane t = new MIDIPane(p);
+									toto.clean();
+									toto.addPartList(midiex.getPart());
 
-							public void changed(ObservableValue<? extends String> observable, String oldValue,
-									String newValue) {
-								// change the label text value to the newly selected
-								// item.
-								label.setText(newValue);
-								Part p = new Part();
-								midiex.addPart(p);
-								MIDIPane t = new MIDIPane(p);
-								toto.clean();
-								toto.addPartList(midiex.getPart());
+									if (t != null)
+										t.setInstrument((int) Constants.getKeyFromValue(newValue));
+									midiex.addPane(t);
+									paintNotes();
 
-								if (t != null)
-									t.setInstrument((int) Constants.getKeyFromValue(newValue));
-								midiex.addPane(t);
-								paintNotes();
-
-								System.out.print(toto.toString());
-							}
-						});
+									System.out.print(toto.toString());
+								}
+							});
+						}
 						Group instedit = new Group();
 						listViewPanel.getChildren().addAll(temp, label, filterInput);
 						instedit.getChildren().addAll(listViewPanel);
@@ -822,6 +793,9 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 						Scene dialogScene = new Scene(instedit, 400, 400);
 						dialog.setScene(dialogScene);
 						dialog.show();
+
+						first = true;
+
 					}
 				});
 
@@ -977,7 +951,7 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 				// new KeyValue(rect.translateXProperty(), (content.getWidth() / 2) - 1),
 				// new KeyValue(rect.translateYProperty(), 0)),
 
-				new KeyFrame(songTime, new KeyValue(rect.translateXProperty(), content.getWidth()-1),
+				new KeyFrame(songTime, new KeyValue(rect.translateXProperty(), content.getWidth() - 1),
 						new KeyValue(rect.translateYProperty(), 0)));
 
 		System.out.println(totalTime / 1000);
@@ -1101,20 +1075,14 @@ public class BasicOpsTest extends Application implements JMC, Pitches {
 	}
 
 	public void synth() throws Exception {
-
 		synth = MidiSystem.getSynthesizer();
 		synth.open();
 
-		Soundbank sb = synth.getDefaultSoundbank();/*
-													 * getSoundbank(new // File("./soundbank-deluxe.gm"));
-													 */
+		Soundbank sb = synth.getDefaultSoundbank();
 
 		synth.loadAllInstruments(sb);
 
-		synth.unloadAllInstruments(synth.getDefaultSoundbank());
-		// synth.loadAllInstruments(MidiSystem.getSoundbank(new File("Donkey Kong
-		// Country 2014.sf2")));
-		// synth.loadAllInstruments(MidiSystem.getSoundbank(new File("Square.sf2")));
+		// synth.unloadAllInstruments(synth.getDefaultSoundbank());
 
 		sequencer.getTransmitter().setReceiver(synth.getReceiver());
 

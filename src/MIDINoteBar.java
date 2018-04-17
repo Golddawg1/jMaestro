@@ -51,7 +51,7 @@ public class MIDINoteBar extends Rectangle implements JMC {
 
 	public void setMNB(MIDINoteBar newNote) {
 
-		Task task = new Task<Void>() {
+		Task<Void> task = new Task<Void>() {
 			@Override
 			public Void call() {
 
